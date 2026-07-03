@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin de Sala — Polla Siigo 2026</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0846f0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+<header class="barra">
+  <div class="contenedor barra__fila">
+    <a class="logo" href="app.html"><img src="icons/icon-192.png" alt="Logo" class="logo__img"><span id="logo-texto">Polla Siigo <small>Mundial 2026</small></span></a>
+    <nav class="nav" id="nav">
+      <a href="lobby.html">🏟 Mis Salas</a>
+    </nav>
+    <div class="usuario-mini">
+      <div class="avatar" id="avatar">?</div>
+      <button class="boton boton--fantasma boton--mini" id="salir" type="button">Salir</button>
+    </div>
+  </div>
+</header>
+
+<main class="contenedor" style="max-width: 680px;">
+
+  <section style="margin-top:26px; margin-bottom:24px">
+    <h1 style="margin:0;font-size:26px" id="sala-nombre">⚙️ Configuración de Sala</h1>
+    <p class="sub">Aquí puedes ajustar las reglas y la cuota de inscripción para esta sala privada.</p>
+  </section>
+
+  <div class="panel panel--relleno">
+    <h2 style="margin-top:0">💰 Cuota de Inscripción</h2>
+    <p class="sub">Define un valor, moneda y tesorero únicos para esta sala. Esto reemplazará las cuotas globales.</p>
+    <form id="f-config" class="rejilla rejilla--2" style="align-items: end;">
+      <div class="campo">
+        <label for="cuota-valor">Valor de la cuota</label>
+        <input id="cuota-valor" type="number" min="0" required placeholder="Ej: 20000">
+      </div>
+      <div class="campo">
+        <label for="cuota-moneda">Moneda</label>
+        <select id="cuota-moneda" required></select>
+      </div>
+      <div class="campo" style="grid-column: 1 / -1;">
+        <label for="tesorero-sala">Tesorero de la sala</label>
+        <input id="tesorero-sala" type="text" placeholder="Nombre del encargado de la plata">
+        <p class="ayuda">Si lo dejas en blanco, se usará el tesorero global (<span id="tesorero-global"></span>).</p>
+      </div>
+      <div style="grid-column: 1 / -1; margin-top: 10px;">
+        <button type="submit" class="boton boton--verde">Guardar Configuración</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel panel--relleno" style="margin-top: 24px;">
+    <h2 style="margin-top:0">👥 Miembros de la Sala</h2>
+    <p class="sub">Aquí puedes ver y administrar los participantes de tu sala. Los miembros pendientes no pueden pronosticar hasta que los apruebes.</p>
+    <div id="lista-miembros">
+      <div class="aviso">Cargando miembros...</div>
+    </div>
+  </div>
+</main>
+
+<script type="module" src="js/config.js"></script>
+<script type="module" src="js/utils.js"></script>
+<script type="module" src="js/store.js"></script>
+<script type="module">
+  import { CONFIG } from './js/config.js';
+
+  (async () => {
+    await Store.init();
+    const yo = await Store.sesion();
+    if (!U.requiereSesion(yo)) return;
+
+    document.getElementById('avatar').textContent = U.iniciales(yo.nombre);
+    document.getElementById('salir').onclick = async () => { await Store.logout(); location.href = 'index.html'; };
+
+    const salaId = U.params().get('sala');
+    if (!salaId) { location.href = 'lobby.html'; return; }
+
+    const sala = await Store.salaPorId(salaId);
+    if (!sala || sala.adminUid !== yo.uid) {
+      U.toast('No tienes permiso para administrar esta sala.', 'error');
+      location.href = 'lobby.html';
+      return;
+    }
+
+    document.getElementById('sala-nombre').textContent = `⚙️ Admin: ${sala.nombre}`;
+    const logoTexto = document.getElementById('logo-texto');
+    if (logoTexto) {
+      logoTexto.innerHTML = `${U.esc(sala.nombre)} <small>Admin</small>`;
+    }
+
+    const selMoneda = document.getElementById('cuota-moneda');
+    selMoneda.innerHTML = Object.entries(CONFIG.CUOTAS)
+      .map(([cod, m]) => `<option value="${cod}">${m.nombre} (${cod})</option>`).join('');
+
+    const config = sala.config || { cuota: 0, moneda: 'COP', tesorero: '' };
+    document.getElementById('cuota-valor').value = config.cuota;
+    selMoneda.value = config.moneda;
+    document.getElementById('tesorero-sala').value = config.tesorero || '';
+    document.getElementById('tesorero-global').textContent = CONFIG.TESORERO;
+
+    document.getElementById('f-config').onsubmit = async e => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button');
+      btn.disabled = true;
+      const nuevaConfig = {
+        cuota: parseInt(document.getElementById('cuota-valor').value, 10),
+        moneda: selMoneda.value,
+        tesorero: document.getElementById('tesorero-sala').value.trim()
+      };
+      try {
+        await Store.guardarConfigSala(salaId, nuevaConfig);
+        U.toast('Configuración de la sala guardada.', 'ok');
+      } catch (err) { U.toast(err.message, 'error'); }
+      btn.disabled = false;
+    };
+
+    async function pintarMiembros() {
+      const cont = document.getElementById('lista-miembros');
+      const usuarios = await Store.usuariosSala(salaId);
+      const miembros = await Store.miembrosDeSala(salaId);
+
+      const pendientes = usuarios.filter(u => u.estado === 'pendiente');
+      const activos = usuarios.filter(u => u.estado === 'activo');
+
+      let html = '';
+      if (pendientes.length > 0) {
+        html += `
+          <div class="aviso aviso--dorado" style="margin-bottom: 14px;">
+            <h4 style="margin:0 0 4px">🔔 ${pendientes.length} miembro(s) esperando aprobación</h4>
+          </div>
+          <div class="tabla-envoltura">
+            <table class="tabla">
+              <thead><tr><th>Nombre</th><th>Correo</th><th>Acción</th></tr></thead>
+              <tbody>
+                ${pendientes.map(u => `
+                  <tr data-uid="${u.uid}">
+                    <td><b>${U.esc(u.nombre)}</b></td>
+                    <td class="sub">${U.esc(u.correo)}</td>
+                    <td><button class="boton boton--verde boton--mini" data-aprobar-miembro>Aprobar ✓</button></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          <h3 style="margin: 22px 0 10px;">Participantes Activos</h3>
+        `;
+      }
+
+      html += `
+        <div class="tabla-envoltura">
+          <table class="tabla">
+            <thead><tr><th>Nombre</th><th>Correo</th><th>Rol</th><th>Acción</th></tr></thead>
+            <tbody>
+              ${activos.sort((a,b) => a.nombre.localeCompare(b.nombre)).map(u => {
+                const miembro = miembros.find(m => m.uid === u.uid);
+                const esAdminSala = miembro?.rol === 'admin';
+                return `
+                  <tr data-uid="${u.uid}" data-nombre="${U.esc(u.nombre)}">
+                    <td><b>${U.esc(u.nombre)}</b></td>
+                    <td class="sub">${U.esc(u.correo)}</td>
+                    <td>${esAdminSala ? '<span class="etiqueta etiqueta--dorada">Organizador</span>' : 'Jugador'}</td>
+                    <td>${!esAdminSala ? `<button class="boton boton--rojo boton--mini" data-expulsar-miembro>Expulsar</button>` : ''}</td>
+                  </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`;
+      cont.innerHTML = html;
+    }
+
+    document.getElementById('lista-miembros').addEventListener('click', async e => {
+      const btnAprobar = e.target.closest('[data-aprobar-miembro]');
+      if (btnAprobar) {
+        const uid = btnAprobar.closest('tr').dataset.uid;
+        btnAprobar.disabled = true; btnAprobar.textContent = 'Aprobando...';
+        try {
+          await Store.actualizarUsuario(uid, { estado: 'activo' });
+          U.toast('Miembro aprobado.', 'ok');
+          await pintarMiembros();
+        } catch (err) { U.toast(err.message, 'error'); btnAprobar.disabled = false; btnAprobar.textContent = 'Aprobar ✓'; }
+        return;
+      }
+      const btnExpulsar = e.target.closest('[data-expulsar-miembro]');
+      if (btnExpulsar) {
+        const tr = btnExpulsar.closest('tr');
+        const uid = tr.dataset.uid; const nombre = tr.dataset.nombre;
+        if (!confirm(`¿Seguro que quieres expulsar a ${nombre} de esta sala?`)) return;
+        btnExpulsar.disabled = true;
+        try {
+          await Store.eliminarMiembro(salaId, uid);
+          U.toast('Miembro expulsado de la sala.', 'ok');
+          await pintarMiembros();
+        } catch (err) { U.toast(err.message, 'error'); btnExpulsar.disabled = false; }
+      }
+    });
+
+    await pintarMiembros();
+  })();
+</script>
+
+</body>
+</html>

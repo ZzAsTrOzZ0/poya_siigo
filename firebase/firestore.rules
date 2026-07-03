@@ -1,0 +1,242 @@
+rules_version = '2';
+
+// ============================================================
+// POLLA MUNDIALISTA SIIGO 2026 — REGLAS DE SEGURIDAD FIRESTORE
+// Pegar en: Consola Firebase → Firestore → Reglas → Publicar.
+//
+// Antes de publicar, crear A MANO (en la consola) el documento:
+//   configuracion/admins  →  { correos: ["nicolas.nieto@siigo.com",
+//                                        "juan.rodriguez.pe@siigo.com"] }
+// (correos en minúsculas; debe coincidir con CONFIG.ADMINS).
+// ============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Funciones auxiliares -------------------------
+    function conectado() {
+      return request.auth != null;
+    }
+
+    function correo() {
+      return request.auth.token.email != null ? request.auth.token.email.lower() : '';
+    }
+
+    function esAdminCorreoFijo() {
+      return correo() == 'nicolas.nieto@siigo.com'
+        || correo() == 'juan.rodriguez.pe@siigo.com';
+    }
+
+    function esAdmin() {
+      return conectado() && (
+        esAdminCorreoFijo()
+        || (exists(/databases/$(database)/documents/configuracion/admins)
+          && correo() in get(/databases/$(database)/documents/configuracion/admins).data.correos)
+      );
+    }
+
+    function esSiigo() {
+      return correo().matches('.*@siigo[.]com$');
+    }
+
+    // Bono campeón: 19 jun 2026 medianoche Colombia (admins siempre pueden).
+    function antesDelPitazoInicial() {
+      return request.time < timestamp.date(2026, 6, 20) + duration.value(5, 'h') || esAdmin();
+    }
+
+    function estadoBloquea(estado) {
+      return estado == 'en_juego' || estado == 'finalizado'
+        || estado == 'aplazado' || estado == 'iniciando';
+    }
+
+    function partidoBloqueadoPorEstado(pid) {
+      let path = /databases/$(database)/documents/resultados/$(pid);
+      return exists(path)
+        && 'estado' in get(path).data
+        && estadoBloquea(get(path).data.estado);
+    }
+
+    // Bloqueo por hora guardada en ajustes/{pid}.cierreMs (ms desde epoch).
+    function partidoCerradoPorTiempo(pid) {
+      let ajPath = /databases/$(database)/documents/ajustes/$(pid);
+      return exists(ajPath)
+        && 'cierreMs' in get(ajPath).data
+        && get(ajPath).data.cierreMs is int
+        && request.time.toMillis() >= get(ajPath).data.cierreMs;
+    }
+
+    function partidoBloqueado(pid) {
+      return partidoBloqueadoPorEstado(pid);
+    }
+
+    // ---------- usuarios/{uid} -------------------------------
+    match /usuarios/{uid} {
+      allow read: if conectado();
+
+      allow create: if conectado()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.correo == correo();
+
+      allow update: if conectado() && request.auth.uid == uid
+        && (
+          request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['moneda', 'campeon'])
+          || (
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rol'])
+            && esAdminCorreoFijo()
+            && request.resource.data.rol == 'admin'
+          )
+        )
+        && (!request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['campeon']) || antesDelPitazoInicial());
+
+      allow update: if esAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['estado', 'pagado', 'rol', 'moneda', 'campeon', 'nombre', 'marcaTrampa', 'intentosTrampa']);
+
+      allow delete: if esAdmin();
+    }
+
+    // ---------- predicciones/{uid__pid} ----------------------
+    match /predicciones/{docId} {
+      allow read: if conectado();
+
+      /* Admin: control total sobre cualquier pronóstico. */
+      allow create, update, delete: if esAdmin();
+
+      allow create, update: if conectado()
+        && request.resource.data.uid == request.auth.uid
+        && docId == request.auth.uid + '__' + request.resource.data.pid
+        && request.resource.data.gl is int
+        && request.resource.data.gv is int
+        && request.resource.data.gl >= 0 && request.resource.data.gl <= 15
+        && request.resource.data.gv >= 0 && request.resource.data.gv <= 15
+        && !partidoBloqueado(request.resource.data.pid);
+    }
+
+    // ---------- sincronizacion/live --------------------------
+    match /sincronizacion/{doc} {
+      allow read: if conectado();
+      allow write: if esAdmin();
+    }
+
+    // ---------- resultados/{pid} -----------------------------
+    match /resultados/{pid} {
+      allow read: if conectado();
+      allow write: if esAdmin();
+      // Cualquier usuario puede marcar "iniciando" tras el pitazo (solo cierra pronósticos).
+      allow create, update: if conectado()
+        && partidoCerradoPorTiempo(pid)
+        && request.resource.data.estado == 'iniciando'
+        && (!exists(/databases/$(database)/documents/resultados/$(pid))
+            || !(get(/databases/$(database)/documents/resultados/$(pid)).data.estado in ['en_juego', 'finalizado']));
+    }
+
+    // ---------- ajustes/{pid} --------------------------------
+    match /ajustes/{pid} {
+      allow read: if conectado();
+      allow write: if esAdmin();
+    }
+
+    // ---------- chats/{partidoId}/mensajes/{msgId} -----------
+    match /chats/{partidoId}/mensajes/{msgId} {
+      allow read: if conectado();
+      allow create: if conectado()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0
+        && request.resource.data.texto.size() <= 280
+        && request.resource.data.nombre is string;
+      allow update: if conectado()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reacciones']);
+    }
+
+    // ---------- publico/tabla --------------------------------
+    match /publico/{doc} {
+      allow read: if conectado();
+      allow write: if esAdmin();
+    }
+
+    // ---------- configuracion/* ------------------------------
+    match /configuracion/{doc} {
+      allow read: if conectado();
+      allow write: if false;
+    }
+
+    // ---------- puntos_manuales ------------------------------
+    match /puntos_manuales/{docId} {
+      allow read: if conectado();
+      allow write: if esAdmin();
+    }
+
+    // ---------- intentos_trampa ------------------------------
+    match /intentos_trampa/{docId} {
+      allow create: if conectado();
+      allow read, write: if esAdmin();
+    }
+
+    // ---------- historial_predicciones -----------------------
+    match /historial_predicciones/{docId} {
+      allow create: if conectado() && request.resource.data.uid == request.auth.uid;
+      allow read, write: if esAdmin();
+    }
+
+    // ---------- registro_admin ---------------------------------
+    match /registro_admin/{docId} {
+      allow read, create: if esAdmin();
+    }
+
+    // ---------- avisos ---------------------------------------
+    match /avisos/{docId} {
+      allow read: if conectado() && resource.data.uid == request.auth.uid;
+      allow create: if esAdmin();
+      allow update: if conectado() && resource.data.uid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['leido']);
+    }
+
+    // ---------- salas/{salaId} ----------------------------------
+    match /salas/{salaId} {
+      allow read: if conectado();
+      allow create: if conectado()
+        && request.resource.data.adminUid == request.auth.uid;
+      allow update: if esAdmin()
+        || request.auth.uid == resource.data.adminUid;
+      allow delete: if esAdmin()
+        || request.auth.uid == resource.data.adminUid;
+    }
+
+    // ---------- salaMiembros/{salaId__uid} ----------------------
+    match /salaMiembros/{doc} {
+      allow read: if conectado();
+      allow create: if conectado()
+        && request.resource.data.uid == request.auth.uid;
+      allow delete: if esAdmin()
+        || request.auth.uid == resource.data.uid
+        || (conectado()
+            && exists(/databases/$(database)/documents/salas/$(resource.data.salaId))
+            && get(/databases/$(database)/documents/salas/$(resource.data.salaId)).data.adminUid == request.auth.uid);
+    }
+
+    // ---------- salas/{salaId}/predicciones/{uid__pid} ----------
+    match /salas/{salaId}/predicciones/{docId} {
+      allow read: if conectado()
+        && exists(/databases/$(database)/documents/salaMiembros/$(salaId + '__' + request.auth.uid));
+      allow create, update: if conectado()
+        && exists(/databases/$(database)/documents/salaMiembros/$(salaId + '__' + request.auth.uid))
+        && request.resource.data.uid == request.auth.uid
+        && docId == request.auth.uid + '__' + request.resource.data.pid
+        && request.resource.data.gl is int
+        && request.resource.data.gv is int
+        && request.resource.data.gl >= 0 && request.resource.data.gl <= 15
+        && request.resource.data.gv >= 0 && request.resource.data.gv <= 15
+        && !partidoBloqueado(request.resource.data.pid);
+      allow delete: if esAdmin();
+    }
+
+    // Todo lo demás, cerrado.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

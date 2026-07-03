@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tabla de posiciones — Polla Siigo 2026</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0846f0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+<div id="banner-mantenimiento" class="banner-mantenimiento oculto" role="alert" aria-live="polite"></div>
+
+<header class="barra">
+  <div class="contenedor barra__fila">
+    <a class="logo" href="app.html"><img src="icons/icon-192.png" alt="Logo" class="logo__img"><span id="logo-texto">Polla Siigo <small>Mundial 2026</small></span></a>
+    <nav class="nav" id="nav">
+      <a href="app.html">Partidos</a>
+      <a href="tabla.html" class="activo">Tabla</a>
+      <a href="cuentas.html">Cuentas</a>
+      <a href="reglas.html">Reglas</a>
+    </nav>
+    <div class="usuario-mini">
+      <div class="avatar" id="avatar">?</div>
+      <button class="boton boton--fantasma boton--mini" id="salir" type="button">Salir</button>
+    </div>
+  </div>
+</header>
+
+<main class="contenedor">
+
+  <section style="margin-top:26px;display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:12px">
+    <div>
+      <h1 style="margin:0;font-size:26px">🏅 Tabla de posiciones</h1>
+      <p class="sub" id="nota-tabla"></p>
+    </div>
+    <button type="button" class="boton boton--fantasma boton--mini" id="btn-refrescar" style="flex-shrink:0">↻ Actualizar</button>
+  </section>
+
+  <div class="podio" id="podio"></div>
+
+  <div class="oculto" id="detalle-movil-slot"></div>
+
+  <p class="sub oculto" id="tabla-cargando" style="text-align:center;padding:8px">Calculando puntos…</p>
+
+  <div class="chips">
+    <button class="chip activo" data-v="" type="button">Todos</button>
+    <button class="chip" data-v="empleado" type="button">Siigo</button>
+    <button class="chip" data-v="externo" type="button">Invitados</button>
+  </div>
+
+  <div class="tabla-envoltura oculto" id="wrap-tabla-desktop">
+    <table class="tabla tabla--compacta">
+      <thead>
+        <tr>
+          <th>#</th><th>Participante</th><th class="col-tabla-extra">Área</th><th class="col-tabla-extra">🏆</th>
+          <th>Pts</th><th class="col-tabla-extra">🎯</th><th class="col-tabla-extra">✔</th><th class="col-tabla-extra">Jug.</th>
+        </tr>
+      </thead>
+      <tbody id="cuerpo"></tbody>
+    </table>
+  </div>
+
+  <div class="tabla-movil oculto" id="lista-movil" aria-live="polite"></div>
+  <button type="button" class="boton boton--fantasma oculto" id="btn-mas-filas" style="width:100%;margin:12px 0">Cargar más</button>
+
+  <p class="ayuda" style="margin-top:14px">Desempates, en orden: puntos → marcadores exactos → resultados acertados → quien se registró primero.
+    El bono de campeón (+10) se suma cuando termine la final.</p>
+
+  <footer class="pie">
+    <p class="creditos">Creado por Nicolás Nieto Daza y Juan Rodríguez · Área de Soporte IT — Siigo</p>
+  </footer>
+</main>
+
+<script type="module" src="js/config.js"></script>
+<script type="module" src="js/fixture.js"></script>
+<script src="js/tema-dinamico.js"></script>
+<script type="module" src="js/utils.js"></script>
+<script type="module" src="js/store.js"></script>
+<script src="js/sw-update.js"></script>
+<script src="js/mantenimiento.js"></script>
+<script type="module" src="js/puntos.js"></script>
+<script type="module">
+import { CONFIG } from './js/config.js';
+(async () => {
+  await Store.init();
+  const yo = await Store.sesion();
+  if (!U.requiereSesion(yo)) return;
+  document.getElementById('avatar').textContent = U.iniciales(yo.nombre);
+  document.getElementById('salir').onclick = async () => { await Store.logout(); location.href = 'index.html'; };
+  if (yo.rol === 'admin' || U.esAdmin(yo.correo)) {
+    const a = document.createElement('a'); a.href = 'admin.html'; a.textContent = '🛠 Admin';
+    document.getElementById('nav').appendChild(a);
+  }
+
+  let filas = [], filtro = '';
+  let cacheDatos = null;
+  let recalcGen = 0;
+  let debounceRecalc = null;
+  let filasMovilVisibles = 25;
+  let lastResultadosFp = '';
+  let lastAjustesFp = '';
+  let recalcEnCurso = false;
+  const notaEl = document.getElementById('nota-tabla');
+  const cargandoEl = document.getElementById('tabla-cargando');
+  const listaMovil = document.getElementById('lista-movil');
+  const slotDetalle = document.getElementById('detalle-movil-slot');
+  const wrapDesktop = document.getElementById('wrap-tabla-desktop');
+  const btnMasFilas = document.getElementById('btn-mas-filas');
+  const btnRefrescar = document.getElementById('btn-refrescar');
+  let detalleUidAbierto = null;
+  let detalleBusy = false;
+
+  const esMovil = window.matchMedia('(max-width: 768px)').matches
+    || (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
+  const optsTabla = () => (esMovil ? { sinRacha: true } : {});
+
+  if (esMovil) {
+    listaMovil.classList.remove('oculto');
+    wrapDesktop.classList.add('oculto');
+  } else {
+    wrapDesktop.classList.remove('oculto');
+  }
+
+  const cederUi = () => new Promise(r => setTimeout(r, 0));
+
+  function fpResultados(res = {}) {
+    const parts = [];
+    for (const id in res) {
+      const r = res[id];
+      if (!r) continue;
+      if (r.estado !== 'en_juego' && r.estado !== 'finalizado') continue;
+      parts.push(`${id}:${r.estado}:${r.gl ?? ''}:${r.gv ?? ''}:${r.t ?? ''}`);
+    }
+    return parts.sort().join('|');
+  }
+
+  function fpAjustes(aj = {}) {
+    const parts = [];
+    for (const id in aj) {
+      const a = aj[id];
+      if (!a) continue;
+      parts.push(`${id}:${a.local || ''}:${a.visitante || ''}:${a.utc || ''}`);
+    }
+    return parts.sort().join('|');
+  }
+
+  function vistaFiltrada() {
+    return filtro ? filas.filter(f => f.vinculo === filtro) : filas;
+  }
+
+  function htmlFilaTabla(f) {
+    const esYo = f.uid === yo.uid;
+    const racha = f.racha || 0;
+    const rachaHtml = racha >= 5
+      ? ` <span class="racha racha--grande" title="🔥 ¡${racha} partidos seguidos sumando!">🔥🔥🔥</span>`
+      : racha >= 3
+      ? ` <span class="racha" title="${racha} partidos seguidos sumando">🔥</span>`
+      : '';
+    return `
+      <tr class="${esYo ? 'yo' : ''}" data-uid="${f.uid}">
+        <td class="pos num">${f.pos}</td>
+        <td><b>${U.esc(f.nombre)}</b>${esYo ? ' <span class="etiqueta etiqueta--dorada">TÚ</span>' : ''}
+            ${f.marcaTrampa ? ` <span class="etiqueta" style="background:rgba(224,53,75,.25);color:#ffb4bc">${U.esc(f.marcaTrampa)}</span>` : ''}
+            ${f.vinculo === 'externo' ? ' <span class="etiqueta">Inv.</span>' : ''}${rachaHtml}</td>
+        <td class="col-tabla-extra">${U.esc(f.area || '')}</td>
+        <td class="col-tabla-extra">${f.campeon ? FIXTURE.equipo(f.campeon).b : '—'}</td>
+        <td class="num" style="color:var(--dorado);font-weight:900">${f.pts}</td>
+        <td class="num col-tabla-extra">${f.exactos}</td>
+        <td class="num col-tabla-extra">${f.aciertos}</td>
+        <td class="num col-tabla-extra">${f.jugadas}</td>
+      </tr>`;
+  }
+
+  function htmlFilaMovil(f) {
+    const esYo = f.uid === yo.uid;
+    return `<button type="button" class="tabla-movil__fila${esYo ? ' tabla-movil__fila--yo' : ''}" data-uid="${f.uid}">
+      <span class="tabla-movil__pos">${f.pos}</span>
+      <span class="tabla-movil__info">
+        <span class="tabla-movil__nombre">${U.esc(f.nombre)}${esYo ? ' · TÚ' : ''}</span>
+        <span class="tabla-movil__sub">${f.exactos} exactos · ${f.aciertos} resultados</span>
+      </span>
+      <span class="tabla-movil__pts">${f.pts}<small>pts</small></span>
+    </button>`;
+  }
+
+  function pintarPodio() {
+    const podio = document.getElementById('podio');
+    const medallas = ['🥇', '🥈', '🥉'];
+    podio.innerHTML = [0, 1, 2].map(i => {
+      const f = filas[i];
+      if (!f) return '<div></div>';
+      const tap = esMovil
+        ? ` type="button" class="podio__caja podio__caja--${i + 1} podio__caja--tap" data-uid="${f.uid}"`
+        : ` class="podio__caja podio__caja--${i + 1}"`;
+      const tag = esMovil ? 'button' : 'div';
+      return `<${tag}${tap}>
+        <div class="medalla">${medallas[i]}</div>
+        <div class="quien">${U.esc(f.nombre)}</div>
+        <div class="pts">${f.pts} pts</div>
+        <div class="ayuda">${f.exactos} exactos</div>
+      </${tag}>`;
+    }).join('');
+  }
+
+  function pintarFilasDesktop(vista) {
+    const tbody = document.getElementById('cuerpo');
+    if (esMovil) {
+      tbody.innerHTML = '';
+      return;
+    }
+    if (!vista.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="centro sub">Todavía no hay participantes en esta vista.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = vista.map(htmlFilaTabla).join('');
+  }
+
+  function pintarFilasMovil(vista) {
+    if (!esMovil) {
+      listaMovil.innerHTML = '';
+      btnMasFilas.classList.add('oculto');
+      return;
+    }
+    if (!vista.length) {
+      listaMovil.innerHTML = '<p class="sub centro">Sin participantes en este filtro.</p>';
+      btnMasFilas.classList.add('oculto');
+      return;
+    }
+    let slice = vista.slice(0, filasMovilVisibles);
+    const miFila = vista.find(f => f.uid === yo.uid);
+    if (miFila && !slice.some(f => f.uid === yo.uid)) {
+      slice = [...slice, miFila];
+    }
+    listaMovil.innerHTML = slice.map(htmlFilaMovil).join('');
+    const hayMas = vista.length > filasMovilVisibles && slice.length < vista.length;
+    btnMasFilas.classList.toggle('oculto', !hayMas && vista.length <= filasMovilVisibles);
+    if (vista.length > filasMovilVisibles) {
+      btnMasFilas.textContent = hayMas
+        ? `Cargar más (${slice.length} de ${vista.length})`
+        : `Mostrando ${slice.length} de ${vista.length}`;
+      btnMasFilas.classList.remove('oculto');
+    }
+  }
+
+  function pintar(soloPodio = false) {
+    pintarPodio();
+    if (soloPodio) return;
+    const vista = vistaFiltrada();
+    pintarFilasDesktop(vista);
+    pintarFilasMovil(vista);
+  }
+
+  function maxResultadosT(res = {}) {
+    let m = 0;
+    for (const r of Object.values(res)) if (r?.t > m) m = r.t;
+    return m;
+  }
+
+  function tablaPublicadaVigente(pub, resultados, ajustes) {
+    if (!pub?.filas?.length || !pub.t) return false;
+    if (pub.congelada) return true;
+    /* Durante partidos en vivo el admin re-publica cada ~90s; una publicación
+       de hace menos de 3 min se acepta aunque haya marcadores más nuevos,
+       para no recalcular toda la tabla en cada dispositivo. */
+    const ultRes = maxResultadosT(resultados);
+    if (ultRes && ultRes > pub.t && Date.now() - pub.t > 3 * 60 * 1000) return false;
+    const fpAj = fpAjustes(ajustes);
+    if (pub.ajustesFp && fpAj && pub.ajustesFp !== fpAj) return false;
+    return true;
+  }
+
+  async function calcularTabla(usuarios, todas, resultados, ajustes, puntosManuales) {
+    await cederUi();
+    return Puntos.tabla(usuarios, todas, resultados, ajustes, puntosManuales, optsTabla());
+  }
+
+  async function recalcRapido() {
+    if (!cacheDatos?.usuarios || !cacheDatos?.todas) return false;
+    const [resultados, ajustes, puntosManuales] = await Promise.all([
+      Store.resultados(), Store.ajustes(), Store.puntosManuales()
+    ]);
+    const fp = fpResultados(resultados);
+    const fpAj = fpAjustes(ajustes);
+    if (fp === lastResultadosFp && fpAj === lastAjustesFp && filas.length) return true;
+    lastResultadosFp = fp;
+    lastAjustesFp = fpAj;
+    cacheDatos = { ...cacheDatos, resultados, ajustes, puntosManuales };
+    filas = await calcularTabla(cacheDatos.usuarios, cacheDatos.todas, resultados, ajustes, puntosManuales);
+    pintar();
+    notaEl.textContent = 'Tabla actualizada con los últimos marcadores.';
+    return true;
+  }
+
+  async function mostrarPublicada(forzarCongelada = false) {
+    if (typeof Store.tablaPublicada !== 'function') return false;
+    try {
+      const [pub, resultados, ajustesPub] = await Promise.all([
+        Store.tablaPublicada(),
+        Store.resultados(),
+        Store.ajustes()
+      ]);
+      if (!tablaPublicadaVigente(pub, resultados, ajustesPub)) return false;
+      lastResultadosFp = fpResultados(resultados);
+      lastAjustesFp = fpAjustes(ajustesPub);
+      cacheDatos = { ...(cacheDatos || {}), resultados, ajustes: ajustesPub };
+      filas = pub.filas;
+      pintar();
+      const cuando = pub.t ? `${U.diaLocal(new Date(pub.t).toISOString())} · ${U.horaLocal(new Date(pub.t).toISOString())}` : '';
+      if (pub.congelada) {
+        notaEl.textContent = cuando
+          ? `🔒 Tabla oficial congelada (${cuando} Colombia). Posiciones fijas hasta que admin descongele.`
+          : '🔒 Tabla oficial congelada. Posiciones fijas hasta que admin descongele.';
+      } else {
+        notaEl.textContent = cuando
+          ? `Tabla publicada ${cuando} (Colombia). Sincronizando en segundo plano…`
+          : 'Tabla publicada. Sincronizando en segundo plano…';
+      }
+      return true;
+    } catch (_) { return false; }
+  }
+
+  async function recalcCompleto(enSegundoPlano = false, forzar = false) {
+    if (recalcEnCurso) return;
+    if (enSegundoPlano && document.hidden) return;
+
+    if (!forzar) {
+      try {
+        const pub = await Store.tablaPublicada();
+        if (pub?.congelada && pub?.filas?.length) {
+          await mostrarPublicada(true);
+          return;
+        }
+      } catch (_) {}
+    }
+
+    if (!forzar && enSegundoPlano && filas.length) {
+      try {
+        const pub = await Store.tablaPublicada();
+        if (tablaPublicadaVigente(pub, cacheDatos?.resultados || {}, cacheDatos?.ajustes || {})
+          && Date.now() - pub.t < 20 * 60 * 1000) {
+          return;
+        }
+      } catch (_) {}
+    }
+
+    const gen = ++recalcGen;
+    recalcEnCurso = true;
+    if (!enSegundoPlano) {
+      cargandoEl.classList.remove('oculto');
+      notaEl.textContent = 'Calculando puntos…';
+    }
+
+    try {
+      const tareas = [
+        cacheDatos?.usuarios ? Promise.resolve(cacheDatos.usuarios) : Store.usuarios(),
+        Store.resultados(),
+        Store.ajustes(),
+        Store.puntosManuales(),
+        (forzar || !cacheDatos?.todas) ? Store.todasPredicciones() : Promise.resolve(cacheDatos.todas)
+      ];
+      const datos = await Promise.all(tareas);
+      if (gen !== recalcGen) return;
+
+      const usuarios = datos[0];
+      const resultados = datos[1];
+      const ajustes = datos[2];
+      const puntosManuales = datos[3];
+      const todas = datos[4];
+      if (!todas) throw new Error('Sin pronósticos');
+
+      lastResultadosFp = fpResultados(resultados);
+      cacheDatos = { usuarios, todas, resultados, ajustes, puntosManuales };
+
+      await cederUi();
+      if (gen !== recalcGen) return;
+
+      filas = await calcularTabla(usuarios, todas, resultados, ajustes, puntosManuales);
+      if (gen !== recalcGen) return;
+
+      pintar();
+      notaEl.textContent = esMovil
+        ? 'Tabla oficial recalculada · toca ↻ si acabas de restaurar desde admin.'
+        : 'Tabla recalculada en vivo · posiciones según pronósticos válidos.';
+    } catch (err) {
+      if (!filas.length) {
+        notaEl.textContent = 'No se pudo cargar la tabla. Toca ↻ Actualizar.';
+      }
+      console.warn('tabla recalc:', err);
+    } finally {
+      recalcEnCurso = false;
+      cargandoEl.classList.add('oculto');
+    }
+  }
+
+  async function cargar(forzar = false) {
+    filasMovilVisibles = esMovil ? 25 : 50;
+    detalleUidAbierto = null;
+    slotDetalle.classList.add('oculto');
+    slotDetalle.innerHTML = '';
+    notaEl.textContent = 'Cargando tabla…';
+    await cederUi();
+
+    if (await mostrarPublicada()) return;
+
+    await recalcCompleto(false, true);
+    if (!filas.length) {
+      notaEl.textContent = 'Esperando tabla oficial… Se actualiza sola cuando hay marcadores nuevos.';
+    }
+  }
+
+  function programarRecalc() {
+    if (document.hidden) return;
+    clearTimeout(debounceRecalc);
+    debounceRecalc = setTimeout(async () => {
+      if (recalcEnCurso) return;
+      try {
+        if (await mostrarPublicada()) return;
+        await recalcCompleto(true, false);
+      } catch (_) {}
+    }, esMovil ? 5000 : 3000);
+  }
+
+  btnRefrescar.onclick = () => cargar(true);
+  btnMasFilas.onclick = () => {
+    filasMovilVisibles += 20;
+    pintarFilasMovil(vistaFiltrada());
+  };
+
+  document.querySelector('.chips').addEventListener('click', e => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    filtro = b.dataset.v;
+    filasMovilVisibles = esMovil ? 25 : 50;
+    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('activo', c === b));
+    pintar();
+  });
+
+  function htmlTarjetaPred(p, pr, res, estado) {
+    const L = FIXTURE.equipo(p.local);
+    const V = FIXTURE.equipo(p.visitante);
+    let color = 'var(--tinta)';
+    let icono = '⏳';
+    if (res?.estado === 'finalizado') {
+      const cal = Puntos.calificar(pr, res, p.fase, p);
+      color = cal.tipo === 'exacto' ? 'var(--verde-claro)' : (cal.tipo === 'resultado' ? 'var(--dorado)' : 'var(--rojo)');
+      icono = cal.tipo === 'exacto' ? '🎯' : (cal.tipo === 'resultado' ? '✔' : '❌');
+    } else if (estado === 'en_juego') {
+      icono = '🔴';
+    }
+    return `<div class="tabla-movil__pred">
+      <div class="tabla-movil__pred-top">${L.b} ${U.esc(L.n)} vs ${U.esc(V.n)} ${V.b} <span>${icono}</span></div>
+      <div class="tabla-movil__pred-scores">
+        <div><small>Pronóstico</small><strong style="color:${color}">${pr.gl} – ${pr.gv}</strong></div>
+        ${res?.estado === 'finalizado'
+          ? `<div><small>Real</small><strong>${res.gl} – ${res.gv}</strong></div>`
+          : '<div><small>Real</small><strong class="sub">—</strong></div>'}
+      </div>
+    </div>`;
+  }
+
+  async function predsUsuario(uid) {
+    if (cacheDatos?.todas?.[uid]) return cacheDatos.todas[uid];
+    return Store.predicciones(uid);
+  }
+
+  async function listaPredicciones(uid, resultados, ajustes) {
+    const susPredsRaw = await predsUsuario(uid);
+    const limite = esMovil ? 6 : 15;
+
+    if (esMovil) {
+      const candidatos = [];
+      for (const [pid, pr] of Object.entries(susPredsRaw || {})) {
+        if (!pr) continue;
+        const p = Puntos.conAjustes(FIXTURE.porId(pid) || {}, ajustes);
+        if (!p.local || !p.visitante || p.local === 'Por definir') continue;
+        const res = Puntos._resultadoCanonico(resultados, p, ajustes);
+        const estado = U.estadoPartido(p, res);
+        if (yo.rol !== 'admin' && estado !== 'en_juego') continue;
+        if (yo.rol === 'admin' && estado !== 'en_juego' && res?.estado !== 'finalizado') continue;
+        const kick = U.parseUtcMs(p.utc) || Date.now();
+        candidatos.push({ p, pr, res, estado, kick });
+      }
+      candidatos.sort((a, b) => Math.abs(a.kick - Date.now()) - Math.abs(b.kick - Date.now()));
+      return candidatos.slice(0, limite).map(c => htmlTarjetaPred(c.p, c.pr, c.res, c.estado));
+    }
+
+    const aliasTabla = U.mapaPartidosCanonicos(
+      FIXTURE.partidos.map(p => Puntos.conAjustes(p, ajustes)).filter(p => p.local && p.visitante),
+      { misPred: susPredsRaw }
+    ).alias;
+    const susPreds = U.normalizarPrediccionesUsuario(susPredsRaw, aliasTabla);
+    const partidosBase = U.dedupePartidos(
+      FIXTURE.partidos.map(p => Puntos.conAjustes(p, ajustes)).filter(p => p.local && p.visitante && p.local !== 'Por definir'),
+      { misPred: susPreds }
+    );
+    const items = U.dedupeVistaPredicciones(partidosBase, p =>
+      susPreds[p.id] || Puntos._predCanonica(susPredsRaw, p, ajustes)
+    );
+    const ahora = Date.now();
+    return items
+      .sort((a, b) => Math.abs(new Date(a.p.utc || '2099').getTime() - ahora) - Math.abs(new Date(b.p.utc || '2099').getTime() - ahora))
+      .map(({ p, pr }) => {
+        const res = Puntos._resultadoCanonico(resultados, p, ajustes);
+        const estado = U.estadoPartido(p, res);
+        if (!pr) return null;
+        if (yo.rol !== 'admin' && estado !== 'en_juego') return null;
+        return htmlTarjetaPred(p, pr, res, estado);
+      })
+      .filter(Boolean)
+      .slice(0, limite);
+  }
+
+  async function abrirDetalle(uid) {
+    if (detalleBusy) return;
+    if (detalleUidAbierto === uid) {
+      detalleUidAbierto = null;
+      slotDetalle.classList.add('oculto');
+      slotDetalle.innerHTML = '';
+      document.querySelectorAll('.fila-pronosticos').forEach(el => el.remove());
+      return;
+    }
+
+    const usuario = filas.find(f => f.uid === uid);
+    if (!usuario) return;
+
+    detalleBusy = true;
+    detalleUidAbierto = uid;
+    document.querySelectorAll('.fila-pronosticos').forEach(el => el.remove());
+
+    if (esMovil) {
+      slotDetalle.classList.remove('oculto');
+      slotDetalle.innerHTML = '<div class="tabla-movil__detalle tabla-movil__detalle--cargando">Cargando pronósticos…</div>';
+      slotDetalle.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    try {
+      if (!cacheDatos?.resultados) {
+        cacheDatos = { ...(cacheDatos || {}), resultados: await Store.resultados(), ajustes: await Store.ajustes() };
+      }
+      await cederUi();
+      const { resultados, ajustes } = cacheDatos;
+      const lista = await listaPredicciones(uid, resultados, ajustes);
+
+      const nota = yo.rol !== 'admin'
+        ? 'Solo partidos en vivo 🔴'
+        : `${lista.length} partido(s)`;
+
+      const detalleHtml = `<div class="tabla-movil__detalle-inner">
+        <div class="tabla-movil__detalle-head">
+          <h4>🔮 ${U.esc(usuario.nombre.split(' ')[0])}</h4>
+          <span class="sub">${nota}</span>
+          <button type="button" class="boton boton--mini boton--fantasma" data-cerrar-detalle>Cerrar</button>
+        </div>
+        ${lista.length
+          ? `<div class="tabla-movil__detalle-grid">${lista.join('')}</div>`
+          : '<div class="aviso" style="margin:0">Sin pronósticos en vivo ahora.</div>'}
+      </div>`;
+
+      if (esMovil) {
+        slotDetalle.innerHTML = `<div class="tabla-movil__detalle">${detalleHtml}</div>`;
+        slotDetalle.querySelector('[data-cerrar-detalle]')?.addEventListener('click', () => {
+          detalleUidAbierto = null;
+          slotDetalle.classList.add('oculto');
+          slotDetalle.innerHTML = '';
+        });
+        return;
+      }
+
+      const tr = document.querySelector(`tr[data-uid="${uid}"]`);
+      if (!tr) return;
+      const trDetalle = document.createElement('tr');
+      trDetalle.className = 'fila-pronosticos';
+      trDetalle.innerHTML = `<td colspan="8" style="padding:18px;background:var(--superficie-2)">${detalleHtml}</td>`;
+      tr.after(trDetalle);
+    } catch (err) {
+      console.warn('detalle tabla:', err);
+      if (esMovil) {
+        slotDetalle.innerHTML = '<div class="aviso">No se pudieron cargar los pronósticos.</div>';
+      }
+    } finally {
+      detalleBusy = false;
+    }
+  }
+
+  document.getElementById('cuerpo').addEventListener('click', e => {
+    const tr = e.target.closest('tr[data-uid]');
+    if (!tr || esMovil) return;
+    abrirDetalle(tr.dataset.uid);
+  });
+
+  document.getElementById('podio').addEventListener('click', e => {
+    const btn = e.target.closest('[data-uid]');
+    if (!btn?.dataset.uid || !esMovil) return;
+    abrirDetalle(btn.dataset.uid);
+  });
+
+  listaMovil.addEventListener('click', e => {
+    const btn = e.target.closest('.tabla-movil__fila');
+    if (!btn) return;
+    abrirDetalle(btn.dataset.uid);
+  });
+
+  await cargar();
+  Store.enCambios(programarRecalc);
+  if (typeof Store.enTablaPublicada === 'function') {
+    Store.enTablaPublicada(() => {
+      mostrarPublicada().catch(() => {});
+    });
+  }
+  setInterval(() => {
+    if (document.hidden || recalcEnCurso) return;
+    mostrarPublicada().catch(() => {});
+  }, esMovil ? 60000 : 45000);
+})();
+</script>
+</body>
+</html>

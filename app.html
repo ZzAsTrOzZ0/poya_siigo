@@ -1,0 +1,2729 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Partidos — Polla Siigo 2026</title>
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0846f0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/estilos.css?v=7">
+</head>
+<body>
+
+<div id="banner-mantenimiento" class="banner-mantenimiento oculto" role="alert" aria-live="polite"></div>
+
+<header class="barra">
+  <div class="contenedor barra__fila">
+    <a class="logo" href="app.html"><img src="icons/icon-192.png" alt="Logo Polla Siigo" class="logo__img"><span id="logo-texto">Polla Siigo <small>Mundial 2026</small></span></a>
+    <nav class="nav" id="nav">
+      <a href="app.html" class="activo">Partidos</a>
+      <a href="tabla.html">Tabla</a>
+      <a href="cuentas.html">Cuentas</a>
+      <a href="reglas.html">Reglas</a>
+    </nav>
+    <div class="usuario-mini">
+      <div class="avatar" id="avatar">?</div>
+      <button class="boton boton--fantasma boton--mini" id="salir" type="button">Salir</button>
+    </div>
+  </div>
+</header>
+
+<main class="contenedor">
+
+  <section class="fila-flex" style="margin-top:22px">
+    <div>
+      <h1 style="margin:0;font-size:26px" id="saludo">Hola 👋</h1>
+      <p class="sub" style="margin:4px 0 0" id="resumen-yo"></p>
+    </div>
+    <div class="empuja panel panel--relleno" style="padding:12px 18px" id="proximo-cierre"></div>
+  </section>
+
+  <div class="tabs" role="tablist" style="margin-top:18px">
+    <button class="activo" data-tab="partidos" type="button">⚽ Partidos</button>
+    <button data-tab="cuadro" type="button">🏆 Cuadro</button>
+    <button data-tab="grupos" type="button">🗂 Grupos del Mundial</button>
+    <button data-tab="campeon" type="button">🏆 Mi campeón</button>
+    <button data-tab="auditoria" type="button">📊 Mis puntos</button>
+  </div>
+
+  <!-- Barra de partidos (visible en todas las pestañas) -->
+  <div id="match-ticker" class="match-ticker oculto" aria-label="Partidos del día"></div>
+
+  <!-- Recordatorios y tendencias activas -->
+  <div id="banner-alertas" class="banner-alertas oculto" aria-live="polite"></div>
+
+  <!-- ============ TAB PARTIDOS ============ -->
+  <section id="tab-partidos">
+    <div class="chips" id="chips">
+      <button class="chip activo" data-f="hoy" type="button">📅 Hoy</button>
+      <button class="chip" data-f="manana" type="button">🌅 Mañana</button>
+      <button class="chip" data-f="pendientes" type="button">✏️ Me faltan</button>
+      <button class="chip" data-f="j1" type="button">Jornada 1</button>
+      <button class="chip" data-f="j2" type="button">Jornada 2</button>
+      <button class="chip" data-f="j3" type="button">Jornada 3</button>
+      <button class="chip" data-f="elim" type="button">🔥 Eliminatorias</button>
+      <button class="chip" data-f="todos" type="button">Todos</button>
+      <select class="mini-input" id="f-grupo" aria-label="Filtrar por grupo">
+        <option value="">Grupo…</option>
+      </select>
+    </div>
+    <div class="chips chips--elim oculto" id="chips-elim" aria-label="Fase eliminatoria">
+      <button class="chip chip--sub activo" data-ronda="" type="button">Todas</button>
+      <button class="chip chip--sub" data-ronda="16avos" type="button">Dieciseisavos</button>
+      <button class="chip chip--sub" data-ronda="8vos" type="button">Octavos</button>
+      <button class="chip chip--sub" data-ronda="4tos" type="button">Cuartos</button>
+      <button class="chip chip--sub" data-ronda="semis" type="button">Semifinales</button>
+      <button class="chip chip--sub" data-ronda="tercer" type="button">3.er puesto</button>
+      <button class="chip chip--sub" data-ronda="final" type="button">Final</button>
+    </div>
+
+    <div id="lista-partidos" aria-live="polite"></div>
+  </section>
+
+  <!-- ============ TAB CUADRO KO ============ -->
+  <section id="tab-cuadro" class="oculto">
+    <div id="contenedor-cuadro"></div>
+  </section>
+
+  <!-- ============ TAB GRUPOS ============ -->
+  <section id="tab-grupos" class="oculto">
+    <div id="contenedor-widgets-grupos"></div>
+    <div id="lista-grupos" style="margin-top:22px;"></div>
+  </section>
+
+  <!-- ============ TAB CAMPEÓN ============ -->
+  <section id="tab-campeon" class="oculto">
+    <div class="panel panel--relleno" style="margin-bottom:18px">
+      <h2>🏆 ¿Quién levanta la copa?</h2>
+      <p class="sub" id="campeon-estado"></p>
+      <div id="campeon-aviso"></div>
+    </div>
+    <div class="campeones" id="lista-campeones"></div>
+  </section>
+
+  <!-- ============ TAB AUDITORÍA (MIS PUNTOS) ============ -->
+  <section id="tab-auditoria" class="oculto">
+    <p class="sub">Desglose de tus puntos: partidos que sumaron, aciertos exactos, solo resultado, fallos y partidos finalizados sin pronóstico.</p>
+    <div id="yo-audit-stats" class="audit-stats"></div>
+    <div class="chips" id="yo-audit-filtros" style="margin-bottom:12px">
+      <button class="chip activo" data-yo-audit-f="" type="button">Todos</button>
+      <button class="chip" data-yo-audit-f="puntos" type="button">✅ Sumaron</button>
+      <button class="chip" data-yo-audit-f="exacto" type="button">🎯 Exactos</button>
+      <button class="chip" data-yo-audit-f="resultado" type="button">✔ Resultado</button>
+      <button class="chip" data-yo-audit-f="fallo" type="button">❌ Falló</button>
+      <button class="chip" data-yo-audit-f="sin_pred" type="button">⬜ Sin pronóstico</button>
+    </div>
+    <div id="yo-audit-resumen" class="aviso aviso--dorado oculto" style="margin-bottom:12px"></div>
+    <div id="yo-audit-secciones" style="margin-bottom:16px"></div>
+    <div id="yo-audit-tabla" class="tabla-envoltura">
+      <p class="sub centro" style="padding:20px">Cargando auditoría…</p>
+    </div>
+  </section>
+
+  <footer class="pie">
+    <p class="creditos">Creado por Nicolás Nieto Daza y Juan Rodríguez · Área de Soporte IT — Siigo</p>
+  </footer>
+</main>
+
+<button id="fab-chat" class="fab" title="Abrir Chat General">💬</button>
+
+<!-- Modal Resumen de Partido (Finalizado) -->
+<div class="modal-overlay" id="modal-detalle">
+  <div class="modal-contenido" style="max-width:520px">
+    <div class="modal-header">
+      <h3 style="margin:0;font-size:16px;color:var(--dorado)" id="modal-det-titulo">Resumen del partido</h3>
+      <button class="modal-cerrar" id="modal-det-cerrar" type="button">✕</button>
+    </div>
+    <div id="modal-det-cuerpo" style="padding:0 16px 16px"></div>
+  </div>
+</div>
+
+<!-- Modal Pronósticos Flotante -->
+<div class="modal-overlay" id="modal-pron">
+  <div class="modal-contenido">
+    <div class="modal-header">
+      <h3 style="margin:0; font-size: 16px; color:var(--dorado)" id="modal-pron-titulo">Pronósticos</h3>
+      <button class="modal-cerrar" id="modal-pron-cerrar" type="button">✕</button>
+    </div>
+    <div id="modal-pron-lista"></div>
+  </div>
+</div>
+
+<!-- Modal Análisis y Estadísticas -->
+<div class="modal-overlay modal-analisis" id="modal-analisis">
+  <div class="modal-contenido">
+    <div class="modal-header">
+      <h3 style="margin:0;font-size:16px;color:var(--dorado)" id="modal-analisis-titulo">Análisis del partido</h3>
+      <button class="modal-cerrar" id="modal-analisis-cerrar" type="button">✕</button>
+    </div>
+    <div class="modal-analisis__tabs-wrap">
+      <div class="modal-analisis__tabs" id="modal-analisis-tabs" role="tablist"></div>
+      <div class="modal-tab-indicator" id="modal-tab-indicator" aria-hidden="true"></div>
+    </div>
+    <div id="modal-analisis-panes"></div>
+  </div>
+</div>
+
+<!-- Modal Chat -->
+<div class="modal-overlay" id="modal-chat">
+  <div class="modal-contenido">
+    <div class="modal-header">
+      <h3 style="margin:0; font-size: 16px; color:var(--dorado)" id="modal-chat-titulo">💬 Chat General</h3>
+      <button class="modal-cerrar" id="modal-chat-cerrar" type="button">✕</button>
+    </div>
+    <div class="chat-content-modal">
+      <div class="chat-mensajes" id="modal-chat-mensajes"></div>
+      <form class="chat-form" id="modal-chat-form" onsubmit="return false;"><input type="text" placeholder="Escribe un mensaje..." required maxlength="280" autocomplete="off"><button type="submit" class="boton boton--mini">Enviar</button></form>
+    </div>
+  </div>
+</div>
+
+<!-- Sonidos de la aplicación -->
+<audio id="sonido-gol" src="sounds/gol.mp3" preload="auto"></audio>
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+<script type="module" src="js/config.js"></script>
+<script type="module" src="js/fixture.js"></script>
+<script src="js/tema-dinamico.js"></script>
+<script type="module" src="js/utils.js"></script>
+<script type="module" src="js/store.js"></script>
+<script src="js/sw-update.js"></script>
+<script src="js/mantenimiento.js"></script>
+<script type="module" src="js/puntos.js"></script>
+<script type="module" src="js/api-futbol.js"></script>
+<script type="module" src="js/ia.js"></script>
+<script type="module" src="js/email.js"></script>
+<script type="module" src="js/grupos-api.js"></script>
+<script type="module" src="js/llaves.js"></script>
+<script type="module" src="js/notificaciones.js"></script>
+<script type="module">
+import { CONFIG } from './js/config.js';
+
+(async () => {
+  await Store.init();
+  const yo = await Store.sesion();
+  if (!U.requiereSesion(yo)) return;
+  if (yo.estado === 'pendiente') { U.toast('Tu cuenta aún está pendiente de aprobación.', 'info'); await Store.logout(); location.href = 'index.html'; return; }
+
+  /* --- estado en memoria -------------------------------------- */
+  let resultados = {}, ajustes = {}, misPred = {}, predsByPartido = {}, filtro = 'hoy', filtroGrupo = '', filtroRonda = '', chatSubscription = null;
+  let filtroInicialAplicado = false, aliasPartidos = {};
+  const borradoresPred = {};
+  let focoPredGuardado = null;
+  let proxCierreTargetMs = null;
+  let proxCierreKey = '';
+  let resumenYoTs = 0;
+  let cargarGen = 0;
+  let cargarPredsGen = 0;
+  let listoPrimeraVista = false;
+  let resultadosListos = false;
+  let debounceNotif = null;
+  let ultimoCierreCheck = 0;
+  let lastFpVista = '';
+  const tabsActivos = new Map();
+  const partidosEf = () => FIXTURE.partidos.map(p => Puntos.conAjustes(p, ajustes));
+  const partidoAbierto = (p, res) => U.abierto(p, res ?? resultados[p.id]);
+
+  function predPartido(p) {
+    if (!p?.id) return null;
+    const ok = pr => pr && pr.gl != null && pr.gv != null;
+    if (ok(misPred[p.id])) return misPred[p.id];
+    const alias = aliasPartidos[p.id];
+    if (alias && ok(misPred[alias])) return misPred[alias];
+    if (p.local && p.visitante && p.local !== 'Por definir') {
+      const clave = U.clavePartidoDuplicado(p);
+      for (const pr of Object.values(misPred)) {
+        if (!ok(pr)) continue;
+        const slot = FIXTURE.porId(pr.pid);
+        if (!slot?.local) continue;
+        const pe = Puntos.conAjustes(slot, ajustes);
+        if (U.clavePartidoDuplicado(pe) === clave) return pr;
+      }
+    }
+    return null;
+  }
+
+  const tienePredPartido = p => !!predPartido(p);
+  const esMovil = window.matchMedia('(max-width: 768px)').matches
+    || (navigator.maxTouchPoints > 0 && window.innerWidth < 1024);
+  const cederUi = () => new Promise(r => setTimeout(r, esMovil ? 8 : 0));
+
+  /* --- encabezado --------------------------------------------- */
+  document.getElementById('avatar').textContent = U.iniciales(yo.nombre);
+  document.getElementById('saludo').textContent = `Hola, ${yo.nombre.split(' ')[0]} 👋`;
+  if (yo.rol === 'admin' || U.esAdmin(yo.correo)) {
+    const a = document.createElement('a'); a.href = 'admin.html'; a.textContent = '🛠 Admin';
+    document.getElementById('nav').appendChild(a);
+  }
+  document.getElementById('salir').onclick = async () => { await Store.logout(); location.href = 'index.html'; };
+
+  document.getElementById('proximo-cierre').innerHTML = '<span class="sub">Cargando…</span>';
+  document.getElementById('lista-partidos').innerHTML = '<p class="sub centro" style="padding:24px">Cargando partidos…</p>';
+  document.getElementById('resumen-yo').textContent = '…';
+
+  // Cargar script del widget de detalles del partido
+  if (!document.getElementById('api-sports-widget-script')) {
+    const scr = document.createElement('script');
+    scr.id = 'api-sports-widget-script';
+    scr.src = 'https://widgets.api-sports.io/3.1.0/game';
+    document.head.appendChild(scr);
+  } else {
+    window.document.dispatchEvent(new Event('DOMContentLoaded', { bubbles: true, cancelable: true }));
+  }
+
+  async function pintarResumenYo() {
+    const el = document.getElementById('resumen-yo');
+    if (!el) return;
+    if (Date.now() - resumenYoTs < 8000) return;
+    resumenYoTs = Date.now();
+
+    try {
+      const pm = await Store.puntosManuales();
+      const d = Puntos.desgloseCompleto(
+        yo.uid, yo, { [yo.uid]: misPred }, resultados, ajustes, pm
+      );
+      let posHtml = '';
+      if (typeof Store.tablaPublicada === 'function') {
+        try {
+          const pub = await Store.tablaPublicada();
+          const fila = pub?.filas?.find(f => f.uid === yo.uid);
+          if (fila) posHtml = ` · puesto <b>${fila.pos}</b> de ${pub.filas.length}`;
+        } catch (_) {}
+      }
+      el.innerHTML = d.pts || d.filas?.length
+        ? `Llevas <b style="color:var(--dorado)">${d.pts} pts</b>${posHtml} · ${d.exactos} exactos`
+        : 'Aún no hay puntos en juego. ¡Pronostica!';
+    } catch (_) {}
+  }
+
+  let yoAuditFiltro = '';
+  let yoAuditCache = null;
+
+  function badgeYoAuditoria(a) {
+    const colores = {
+      ok: 'background:rgba(46,204,113,.2);color:#7dffb0',
+      ok_revisar: 'background:rgba(255,193,7,.2);color:#ffd966',
+      perdonado: 'background:rgba(255,193,7,.25);color:#ffd966',
+      manual: 'background:rgba(8,70,240,.25);color:#9db8ff',
+      tarde: 'background:rgba(224,53,75,.25);color:#ffb4bc',
+      pendiente: 'background:rgba(255,152,0,.25);color:#ffcc80',
+      rechazado: 'background:rgba(224,53,75,.3);color:#ffb4bc',
+      fallo: 'background:rgba(255,255,255,.06);color:var(--tinta-2)',
+      sin_pred: 'background:rgba(255,255,255,.04);color:var(--tinta-3)',
+      neutral: 'background:transparent;color:var(--tinta-3)'
+    };
+    const c = colores[a.estado] || colores.neutral;
+    return `<span class="etiqueta" style="${c};font-size:11px">${U.esc(a.etiqueta)}</span>`;
+  }
+
+  async function pintarMiAuditoria() {
+    const caja = document.getElementById('yo-audit-tabla');
+    const resumen = document.getElementById('yo-audit-resumen');
+    const stats = document.getElementById('yo-audit-stats');
+    const secciones = document.getElementById('yo-audit-secciones');
+    if (!caja) return;
+    try {
+      const pm = await Store.puntosManuales();
+      const d = Puntos.desgloseCompleto(yo.uid, yo, { [yo.uid]: misPred }, resultados, ajustes, pm);
+      yoAuditCache = d;
+      const ra = d.resumenAuditoria;
+      const filasVista = Puntos.filtrarFilasAuditoria(d.filas, yoAuditFiltro);
+
+      if (stats) {
+        const tarjetas = [
+          { f: 'puntos', label: 'Sumaron', val: ra.sumaron, sub: `${ra.ptsSumaron} pts` },
+          { f: 'exacto', label: 'Exactos', val: ra.exactos, sub: `${ra.ptsExactos} pts` },
+          { f: 'resultado', label: 'Resultado', val: ra.resultados, sub: `${ra.ptsResultados} pts` },
+          { f: 'fallo', label: 'Falló', val: ra.fallos, sub: '0 pts' },
+          { f: 'sin_pred', label: 'Sin pronóstico', val: ra.sinPred, sub: 'finalizados' }
+        ];
+        stats.innerHTML = tarjetas.map(t => `
+          <button type="button" class="audit-stat${yoAuditFiltro === t.f ? ' audit-stat--activo' : ''}" data-yo-audit-stat="${t.f}">
+            <span class="audit-stat__val">${t.val}</span>
+            <span class="audit-stat__lbl">${t.label}</span>
+            <span class="audit-stat__sub">${t.sub}</span>
+          </button>`).join('');
+        stats.onclick = e => {
+          const btn = e.target.closest('[data-yo-audit-stat]');
+          if (!btn) return;
+          yoAuditFiltro = yoAuditFiltro === btn.dataset.yoAuditStat ? '' : btn.dataset.yoAuditStat;
+          document.querySelectorAll('#yo-audit-filtros .chip').forEach(c =>
+            c.classList.toggle('activo', c.dataset.yoAuditF === yoAuditFiltro));
+          pintarMiAuditoria();
+        };
+      }
+
+      if (resumen) {
+        resumen.classList.remove('oculto');
+        resumen.innerHTML = `
+          Total: <b>${d.pts} pts</b> · Auto: <b>${ra.ptsAutoTotal}</b>${ra.ptsManual ? ` · Manual: +${ra.ptsManual}` : ''}${d.bono ? ` · Bono 🏆: +${d.bono}` : ''}
+          · ✅ ${ra.sumaron} sumaron · 🎯 ${ra.exactos} exactos · ✔ ${ra.resultados} resultado
+          · ❌ ${ra.fallos} falló · ⬜ ${ra.sinPred} sin pronóstico`;
+      }
+
+      if (secciones && !yoAuditFiltro) {
+        const bloques = [
+          { titulo: '✅ Sumaron puntos', filtro: 'puntos', vacio: 'Aún no sumaste puntos en ningún partido.' },
+          { titulo: '⬜ Sin pronóstico (finalizados)', filtro: 'sin_pred', vacio: 'No te falta ningún partido finalizado.' },
+          { titulo: '❌ Falló (con pronóstico)', filtro: 'fallo', vacio: 'No tienes fallos registrados.' }
+        ];
+        secciones.innerHTML = bloques.map(b => {
+          const todas = Puntos.filtrarFilasAuditoria(d.filas, b.filtro);
+          const filas = todas.slice(0, 6);
+          const mas = todas.length - filas.length;
+          return `<details class="audit-bloque" open>
+            <summary>${b.titulo} <span class="sub">(${todas.length})</span></summary>
+            ${filas.length
+              ? `<div class="tabla-envoltura" style="margin-top:8px"><table class="tabla tabla--compacta">
+                  <thead><tr><th>Partido</th><th>Pred</th><th>Real</th><th>Pts</th><th>Estado</th></tr></thead>
+                  <tbody>${filas.map(f => `<tr>
+                    <td style="font-size:12px"><b>${U.esc(f.partido)}</b></td>
+                    <td class="num">${f.pred || '—'}</td>
+                    <td class="num">${f.real || '—'}</td>
+                    <td class="num"><b>${f.pts != null ? f.pts : '—'}</b></td>
+                    <td>${badgeYoAuditoria(f.auditoria)}</td>
+                  </tr>`).join('')}</tbody>
+                </table>${mas > 0 ? `<p class="sub" style="margin:6px 0 0">+ ${mas} más — usa los filtros arriba.</p>` : ''}</div>`
+              : `<p class="sub" style="margin:8px 0 0">${b.vacio}</p>`}
+          </details>`;
+        }).join('');
+      } else if (secciones) {
+        secciones.innerHTML = '';
+      }
+
+      if (!filasVista.length) {
+        caja.innerHTML = '<p class="sub centro" style="padding:20px">Nada en este filtro.</p>';
+      } else {
+        caja.innerHTML = `
+          <table class="tabla tabla--compacta">
+            <thead><tr><th>Partido</th><th>Pronóstico</th><th>Real</th><th>Pts</th><th>Estado</th></tr></thead>
+            <tbody>${filasVista.map(f => {
+              const icono = f.tipo === 'exacto' ? '🎯' : f.tipo === 'resultado' ? '✔' : f.finalizado ? '❌' : '—';
+              return `<tr>
+                <td style="font-size:12px">${U.esc(f.etapa)}<br><b>${U.esc(f.partido)}</b></td>
+                <td class="num">${f.pred || '<span class="sub">—</span>'}</td>
+                <td class="num">${f.real || '—'}</td>
+                <td class="num"><b>${f.pts != null ? f.pts + ' ' + icono : '—'}</b></td>
+                <td>${badgeYoAuditoria(f.auditoria)}</td>
+              </tr>`;
+            }).join('')}</tbody>
+          </table>`;
+      }
+    } catch (err) {
+      caja.innerHTML = `<p class="sub centro" style="padding:20px;color:var(--rojo)">No se pudo cargar la auditoría.</p>`;
+      console.warn('pintarMiAuditoria:', err);
+    }
+  }
+
+  document.getElementById('yo-audit-filtros')?.addEventListener('click', e => {
+    const b = e.target.closest('[data-yo-audit-f]');
+    if (!b) return;
+    yoAuditFiltro = b.dataset.yoAuditF;
+    document.querySelectorAll('#yo-audit-filtros .chip').forEach(c => c.classList.toggle('activo', c === b));
+    pintarMiAuditoria();
+  });
+
+  function formatRelojCuenta(t) {
+    return t.d > 0
+      ? `${t.d}d ${String(t.h).padStart(2, '0')}h`
+      : `${String(t.h).padStart(2, '0')}:${String(t.m).padStart(2, '0')}:${String(t.s).padStart(2, '0')}`;
+  }
+
+  function resolverProximoCierreMeta() {
+    const todosLosPartidos = partidosEf().sort((a, b) => (a.utc || 'z').localeCompare(b.utc || 'z'));
+    const hoyLocal = U.fechaColombia();
+    const mananaLocal = U.fechaColombia(new Date(Date.now() + 86400000));
+    const abiertos = todosLosPartidos.filter(p => p.local && p.visitante && partidoAbierto(p));
+    abiertos.sort((a, b) => {
+      const ca = U.esPartidoCercano(a, hoyLocal, mananaLocal, resultados) ? 0 : 1;
+      const cb = U.esPartidoCercano(b, hoyLocal, mananaLocal, resultados) ? 0 : 1;
+      if (ca !== cb) return ca - cb;
+      return (U.cierrePronosticoMs(a) || Infinity) - (U.cierrePronosticoMs(b) || Infinity);
+    });
+    const proxAbierto = abiertos[0];
+
+    if (proxAbierto) {
+      const L = FIXTURE.equipo(proxAbierto.local);
+      const V = FIXTURE.equipo(proxAbierto.visitante);
+      const faltaPred = !tienePredPartido(proxAbierto);
+      const labelCierre = proxAbierto.horaOk ? 'Pitazo en' : 'Próximo cierre';
+      return {
+        key: `open:${proxAbierto.id}:${faltaPred ? 1 : 0}`,
+        targetMs: U.cierrePronosticoMs(proxAbierto),
+        label: `${labelCierre} · ${L.b} vs ${V.b}`,
+        prefix: 'FALTAN',
+        alerta: faltaPred
+          ? `<div style="margin-top:8px;padding:4px 10px;background:rgba(224,53,75,0.2);border:1px solid rgba(224,53,75,0.5);border-radius:8px;font-size:12px;color:#fff;font-weight:bold;display:inline-block;animation:latido 1.5s infinite">⚠️ ¡Ojo! Te falta pronosticar este partido</div>`
+          : ''
+      };
+    }
+
+    const proxCronologico = todosLosPartidos.find(p => {
+      const kickoff = U.inicioPartidoMs(p);
+      return kickoff && kickoff > Date.now();
+    });
+    if (proxCronologico) {
+      const L = proxCronologico.local ? FIXTURE.equipo(proxCronologico.local) : null;
+      const V = proxCronologico.visitante ? FIXTURE.equipo(proxCronologico.visitante) : null;
+      const motivo = (L && V) ? 'El partido está por comenzar.' : 'Esperando definición de equipos.';
+      return {
+        key: `next:${proxCronologico.id}`,
+        targetMs: U.inicioPartidoMs(proxCronologico),
+        label: `Próximo partido · ${L ? L.b : '?'} vs ${V ? V.b : '?'}`,
+        prefix: 'EN',
+        alerta: `<div style="margin-top:8px;font-size:12px;color:var(--tinta-2)">${motivo}</div>`
+      };
+    }
+
+    return null;
+  }
+
+  function tickProximoCierre() {
+    const caja = document.getElementById('proximo-cierre');
+    const relojEl = caja?.querySelector('[data-prox-reloj]');
+    if (!relojEl || !proxCierreTargetMs) return;
+    const t = U.cuentaRegresiva(proxCierreTargetMs);
+    const prefix = caja.dataset.proxPrefix || 'FALTAN';
+    relojEl.textContent = `${prefix} ${formatRelojCuenta(t)}`;
+  }
+
+  /* --- cuenta regresiva al próximo cierre ---------------------- */
+  function pintarProximoCierre(force = false) {
+    const caja = document.getElementById('proximo-cierre');
+    if (!caja) return;
+    const meta = resolverProximoCierreMeta();
+
+    if (!meta) {
+      proxCierreTargetMs = null;
+      proxCierreKey = '';
+      caja.innerHTML = '<span class="sub">No hay cierres próximos.</span>';
+      return;
+    }
+
+    proxCierreTargetMs = meta.targetMs;
+    if (!force && meta.key === proxCierreKey && caja.querySelector('[data-prox-reloj]')) {
+      tickProximoCierre();
+      return;
+    }
+
+    proxCierreKey = meta.key;
+    caja.dataset.proxPrefix = meta.prefix;
+    const t = U.cuentaRegresiva(meta.targetMs);
+    caja.innerHTML = `
+      <div style="font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--tinta-3)">${meta.label}</div>
+      <div data-prox-reloj style="font-family:var(--fuente-marcador);font-size:26px;font-weight:700;color:var(--dorado)">${meta.prefix} ${formatRelojCuenta(t)}</div>
+      ${meta.alerta || ''}`;
+  }
+
+  /* --- TABS ----------------------------------------------------- */
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('activo', x === b));
+    ['partidos', 'cuadro', 'grupos', 'campeon', 'auditoria'].forEach(t =>
+      document.getElementById('tab-' + t).classList.toggle('oculto', b.dataset.tab !== t));
+    if (b.dataset.tab === 'cuadro') pintarCuadro();
+    if (b.dataset.tab === 'auditoria') pintarMiAuditoria();
+    if (b.dataset.tab === 'grupos') {
+      pintarGrupos();
+      // Cargar posiciones y goleadores desde la API directamente
+      document.getElementById('contenedor-widgets-grupos').innerHTML = `
+        <div class="widgets-pro-grid">
+          <div class="panel panel--relleno widget-pro-box">
+            <div class="widget-pro-titulo">📊 Posiciones Oficiales · Mundial 2026</div>
+            <p class="sub" style="margin:0 0 12px;font-size:12px;">Clasificación oficial · feed estadístico en tiempo real</p>
+            <div id="contenedor-posiciones-api">
+              <div style="text-align:center;padding:20px;color:var(--tinta-3);font-size:13px;">⏳ Cargando posiciones...</div>
+            </div>
+          </div>
+          <div class="panel panel--relleno widget-pro-box">
+            <div class="widget-pro-titulo">🏆 Goleadores · Mundial 2026</div>
+            <p class="sub" style="margin:0 0 12px;font-size:12px;">Goleadores del torneo · feed estadístico en tiempo real</p>
+            <div id="contenedor-goleadores-api">
+              <div style="text-align:center;padding:20px;color:var(--tinta-3);font-size:13px;">⏳ Cargando goleadores...</div>
+            </div>
+          </div>
+        </div>`;
+      if (window.GruposApi) {
+        GruposApi.cargarWidgets(resultados);
+      }
+    }
+    if (b.dataset.tab === 'campeon') pintarCampeon();
+  });
+
+  /* --- FILTROS --------------------------------------------------- */
+  const selGrupo = document.getElementById('f-grupo');
+  selGrupo.innerHTML += Object.keys(FIXTURE.grupos).map(g => `<option value="${g}">Grupo ${g}</option>`).join('');
+  selGrupo.onchange = () => { filtroGrupo = selGrupo.value; pintarPartidos(); };
+  document.getElementById('chips').addEventListener('click', e => {
+    const b = e.target.closest('.chip'); if (!b || b.dataset.ronda !== undefined) return;
+    filtro = b.dataset.f;
+    document.querySelectorAll('#chips .chip').forEach(c => c.classList.toggle('activo', c === b));
+    document.getElementById('chips-elim').classList.toggle('oculto', filtro !== 'elim');
+    pintarPartidos();
+  });
+  document.getElementById('chips-elim').addEventListener('click', e => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    filtroRonda = b.dataset.ronda || '';
+    document.querySelectorAll('#chips-elim .chip').forEach(c => c.classList.toggle('activo', c === b));
+    pintarPartidos();
+  });
+
+  /* Mensaje divertido según resultado del pronóstico */
+  function mensajePuntos(cal, pred) {
+    if (!pred) return `<span class="msg-sin">Sin pronóstico 😅</span>`;
+    if (!cal || cal.tipo === null) return `<span class="pronostico__guardado">Tu pronóstico: <b>${pred.gl}–${pred.gv}</b></span>`;
+    if (cal.tipo === 'fallo')
+      return `<span class="msg-fallo">¡Qué mala suerte! Pero la pelota sigue rodando, sigue intentando 😅</span>`;
+    if (cal.tipo === 'resultado')
+      return `<span class="msg-resultado">¡Uff, te salvaste en el palo! Sumaste <b>${cal.pts} punto${cal.pts !== 1 ? 's' : ''}</b>. Sigue intentando y de seguro mejoras 🔥</span>`;
+    if (cal.tipo === 'exacto')
+      return `<span class="msg-exacto">¡Uy! ¿Eres el nuevo Nostradamus? 🔮 Qué bien lo hiciste, ¡sumaste <b>${cal.pts} puntos exactos</b>! 🎯</span>`;
+    return `<span class="pronostico__guardado">Tu pronóstico: <b>${pred.gl}–${pred.gv}</b></span>`;
+  }
+
+  function filtrar(lista) {
+    const hoyLocal = U.fechaColombia();
+    const mananaLocal = U.fechaColombia(new Date(Date.now() + 86400000));
+    let out = lista;
+
+    if (filtro === 'hoy') {
+      out = lista.filter(p => {
+        if (!p.local || !p.visitante || p.local === 'Por definir') return false;
+        const res = resultados[p.id];
+        const est = U.estadoPartido(p, res);
+        if (est === 'en_juego' || est === 'iniciando') return true;
+        return U.esPartidoCercano(p, hoyLocal, mananaLocal, resultados);
+      });
+      if (!out.length) {
+        out = lista.filter(p => {
+          const res = resultados[p.id];
+          const est = U.estadoPartido(p, res);
+          if (est === 'en_juego' || est === 'iniciando') return true;
+          if (p.fase !== 'eliminatorias' || !p.local) return false;
+          return U.esPartidoCercano(p, hoyLocal, mananaLocal, resultados) || partidoAbierto(p);
+        });
+      }
+    } else if (filtro === 'manana') {
+      out = lista.filter(p => p.local && p.visitante && p.local !== 'Por definir'
+        && U.esPartidoEnDia(p, mananaLocal, resultados));
+    } else if (filtro === 'pendientes') {
+      out = out.filter(p => partidoAbierto(p) && !tienePredPartido(p));
+    } else if (/^j[123]$/.test(filtro)) {
+      out = out.filter(p => p.fase === 'grupos' && p.jornada === +filtro[1]);
+    } else if (filtro === 'elim') {
+      out = out.filter(p => p.fase === 'eliminatorias');
+      if (filtroRonda) out = out.filter(p => p.ronda === filtroRonda);
+    } else if (filtro === 'todos') {
+      // No se aplica filtro, `out` ya es `lista`
+    }
+
+    if (filtroGrupo) out = out.filter(p => p.grupo === filtroGrupo || (p.fase === 'eliminatorias' && !filtroGrupo));
+    out = out.filter(p => !U.asignacionKoSospechosa(p) || U.esPartidoCercano(p, hoyLocal, mananaLocal, resultados));
+    return out;
+  }
+
+  /* --- TARJETA DE PARTIDO ---------------------------------------- */
+  function htmlPenalesLive(res, p) {
+    if (!res || (res.periodo !== 'P' && !res.penales && !(res.penalesTanda || []).length)) return '';
+    const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+    const tanda = res.penalesTanda || [];
+    const tirosL = tanda.filter(t => t.eq === p.local);
+    const tirosV = tanda.filter(t => t.eq === p.visitante);
+    const fmtTiros = arr => arr.length
+      ? arr.map(t => `<span class="penales-kick penales-kick--${t.ok ? 'ok' : 'miss'}" title="${U.esc(t.j)}">${t.ok ? '⚽' : '❌'}</span>`).join('')
+      : '';
+    const ultimo = tanda.length
+      ? tanda.slice(-3).map(t => `${t.ok ? '⚽' : '❌'} ${U.esc(t.j)}`).join(' · ')
+      : '';
+    return `<div class="penales-tanda">
+      ${res.penales ? `<div class="penales-score">Tanda <b>${res.penales.gl} – ${res.penales.gv}</b> <span class="sub">(90′+prórroga: ${res.gl}–${res.gv})</span></div>` : '<div class="penales-score">Tanda de penales</div>'}
+      <div class="penales-row">
+        <div class="penales-side"><span class="penales-flag">${L.b}</span>${fmtTiros(tirosL) || '<span class="sub">…</span>'}</div>
+        <div class="penales-side penales-side--v">${fmtTiros(tirosV) || '<span class="sub">…</span>'}<span class="penales-flag">${V.b}</span></div>
+      </div>
+      ${ultimo ? `<div class="penales-ultimo">${ultimo}</div>` : ''}
+    </div>`;
+  }
+
+  function cardPartido(p) {
+    const res = resultados[p.id] || null;
+    const est = U.estadoPartido(p, res);
+    const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+    const pred = predPartido(p);
+    const sinEquipos = !p.local || !p.visitante;
+
+    /* etiqueta de estado */
+    let badge = '';
+    if (est === 'iniciando') badge = `<span class="etiqueta etiqueta--vivo">INICIANDO...</span>`;
+    if (est === 'en_juego')  badge = `<span class="etiqueta etiqueta--vivo">● EN VIVO</span>`;
+    if (est === 'finalizado') badge = `<span class="etiqueta etiqueta--fin">FINAL</span>`;
+    if (est === 'cerrado')    badge = `<span class="etiqueta">CERRADO</span>`;
+    if (est === 'sin_definir') badge = `<span class="etiqueta">POR DEFINIR</span>`;
+
+    /* hora */
+    const hora = !p.utc
+      ? `📆 ${U.esc(p.ventana || p.fecha)} · hora por definir`
+      : p.horaOk
+        ? `🕐 ${U.diaLocal(p.utc)} · ${U.horaLocal(p.utc)} (Colombia) — cierra al iniciar`
+        : `🕐 ${U.diaLocal(p.utc)} · <b>hora por confirmar</b> — cierra 11:00 a.m. Colombia`;
+
+    const estaAbierto = partidoAbierto(p, res);
+
+    /* marcador central o entrada de pronóstico */
+    let centro;
+    if (res && (est === 'en_juego' || est === 'finalizado')) {
+      centro = `<div class="marcador ${est === 'en_juego' ? 'marcador--vivo' : 'marcador--fin'}">${res.gl} – ${res.gv}</div>`;
+    } else if (estaAbierto && !sinEquipos) {
+      const bor = borradoresPred[p.id];
+      const gl = bor && Object.prototype.hasOwnProperty.call(bor, 'l') ? bor.l : (pred ? pred.gl : '');
+      const gv = bor && Object.prototype.hasOwnProperty.call(bor, 'v') ? bor.v : (pred ? pred.gv : '');
+      centro = `
+        <div class="marcador marcador--pred">
+          <div class="pred-inline">
+            <div class="stepper stepper--compact">
+              <button type="button" data-st="l-">−</button>
+              <input inputmode="numeric" data-in="l" value="${gl}" placeholder="0" aria-label="Goles ${U.esc(L.n)}">
+              <button type="button" data-st="l+">+</button>
+            </div>
+            <span class="pred-sep">–</span>
+            <div class="stepper stepper--compact">
+              <button type="button" data-st="v-">−</button>
+              <input inputmode="numeric" data-in="v" value="${gv}" placeholder="0" aria-label="Goles ${U.esc(V.n)}">
+              <button type="button" data-st="v+">+</button>
+            </div>
+          </div>
+          <button class="boton boton--verde boton--mini pred-guardar" data-guardar type="button">${pred ? 'Actualizar ✓' : 'Guardar ✓'}</button>
+        </div>`;
+    } else if (pred) {
+      centro = `<div class="marcador marcador--pred-guardado"><span class="vs">VS</span><span class="pred-chip">Tu pick: ${pred.gl}–${pred.gv}</span></div>`;
+    } else {
+      centro = `<div class="marcador"><span class="vs">VS</span></div>`;
+    }
+
+    let encabezado = '';
+    if (est === 'en_juego') {
+      const PERIODOS = {'1H':'1ª Parte','2H':'2ª Parte','HT':'Descanso','ET':'Prórroga','BT':'Pausa ET','P':'Penales'};
+      const esDescanso = U.esDescanso(res);
+      const esPenales = res?.periodo === 'P' || !!res?.penales;
+      const periodoLabel = PERIODOS[res?.periodo] || (esDescanso ? 'Descanso' : '');
+      const minBadge = esDescanso ? (res?.periodo === 'BT' ? 'Pausa ET' : 'Descanso') : (esPenales ? 'PEN' : `${U.formatMinutoCaja(res)}′`);
+
+      const eventos = res?.eventos || [];
+
+      /* — tarjetas por equipo — */
+      const rojasLEv     = eventos.filter(e => e.eq === p.local     && e.t === 'roja');
+      const rojasVEv     = eventos.filter(e => e.eq === p.visitante && e.t === 'roja');
+      const amarillasLEv = eventos.filter(e => e.eq === p.local     && e.t === 'amarilla');
+      const amarillasVEv = eventos.filter(e => e.eq === p.visitante && e.t === 'amarilla');
+      const numRojasL    = rojasLEv.length     ? rojasLEv.length     : (res?.tarjetas?.[p.local]?.rojas     || 0);
+      const numRojasV    = rojasVEv.length     ? rojasVEv.length     : (res?.tarjetas?.[p.visitante]?.rojas  || 0);
+      const numAmarL     = amarillasLEv.length ? amarillasLEv.length : (res?.tarjetas?.[p.local]?.amarillas  || 0);
+      const numAmarV     = amarillasVEv.length ? amarillasVEv.length : (res?.tarjetas?.[p.visitante]?.amarillas || 0);
+      const tarjetasL    = (numAmarL  > 0 ? '🟨'.repeat(Math.min(numAmarL,3))  : '') + (numRojasL > 0 ? '🟥' : '');
+      const tarjetasV    = (numAmarV  > 0 ? '🟨'.repeat(Math.min(numAmarV,3))  : '') + (numRojasV > 0 ? '🟥' : '');
+
+      /* — eventos ordenados por minuto por lado — */
+      const evL = eventos.filter(e => e.eq === p.local).sort((a,b) => a.m - b.m);
+      const evV = eventos.filter(e => e.eq === p.visitante).sort((a,b) => a.m - b.m);
+
+      // Emoji para subtipo de gol
+      const _golIcon = (e) => {
+        if (e.t !== 'gol') return '';
+        if (e.subtipo === 'penal') return ' ⚪';
+        if (e.subtipo === 'autogol') return ' 🚫';
+        if (e.subtipo === 'tiro_libre') return ' 🥾';
+        if (e.subtipo === 'cabeza') return ' 🤕';
+        return '';
+      };
+      const _golLabel = (e) => {
+        if (e.t !== 'gol') return '';
+        if (e.subtipo === 'penal') return ' (P)';
+        if (e.subtipo === 'autogol') return ' (AG)';
+        if (e.subtipo === 'tiro_libre') return ' (TL)';
+        if (e.subtipo === 'cabeza') return ' (CAB)';
+        return '';
+      };
+      const evIcon = t => t==='gol'?'⚽':t==='roja'?'🟥':t==='amarilla'?'🟨':t==='gol_anulado'?'⚽❌':'🔄';
+      const minStr = e => `${e.m}${e.x ? '+' + e.x : ''}′`;
+      const fmtL = e => e.t === 'cambio'
+        ? `<div class="evento"><span class="evento-icono">🔄</span><span class="evento-jugador"><span class="ev-sale">${U.esc(e.j)}</span> <span class="ev-flecha">→</span> <span class="ev-entra">${U.esc(e.a||'')}</span></span><span class="evento-min">${minStr(e)}</span></div>`
+        : `<div class="evento ${e.t === 'gol_anulado' ? 'evento--anulado' : ''}"><span class="evento-icono">${evIcon(e.t)}${_golIcon(e)}</span><span class="evento-jugador">${U.esc(e.j)}<span class="ev-subtipo">${_golLabel(e)}</span></span><span class="evento-min">${minStr(e)}</span></div>`;
+      const fmtV = e => e.t === 'cambio'
+        ? `<div class="evento evento--v"><span class="evento-min">${minStr(e)}</span><span class="evento-jugador"><span class="ev-entra">${U.esc(e.a||'')}</span> <span class="ev-flecha">←</span> <span class="ev-sale">${U.esc(e.j)}</span></span><span class="evento-icono">🔄</span></div>`
+        : `<div class="evento evento--v ${e.t === 'gol_anulado' ? 'evento--anulado' : ''}"><span class="evento-min">${minStr(e)}</span><span class="evento-jugador">${U.esc(e.j)}<span class="ev-subtipo">${_golLabel(e)}</span></span><span class="evento-icono">${evIcon(e.t)}${_golIcon(e)}</span></div>`;
+
+      const tieneEvs = evL.length > 0 || evV.length > 0;
+      const eventosHTML = (tieneEvs || esDescanso) ? `
+        <div class="eventos-partido">
+          ${esDescanso ? '<div class="ev-descanso">⏸ DESCANSO</div>' : ''}
+          <div class="eventos-col">${evL.map(fmtL).join('')}</div>
+          <div class="eventos-col eventos-col--v">${evV.map(fmtV).join('')}</div>
+        </div>` : '';
+
+      encabezado = `
+        <div class="vivo-encabezado">
+          <div class="vivo-meta">
+            <span class="etiqueta etiqueta--vivo"
+              data-min-base="${res?.minuto ?? ''}"
+              data-min-extra="${res?.minutoExtra ?? ''}"
+              data-min-at="${U.minutoAtEfectivo(res) ?? ''}"
+              data-periodo="${res?.periodo ?? ''}">● ${U.esc(minBadge)}</span>
+            <span class="etiqueta etiqueta--dorada">${U.esc(p.etapa)}</span>
+          </div>
+          <div class="vivo-marcador">
+            <div class="vivo-equipo">
+              <div class="vivo-bandera">${p.local ? (L.b || '⚽') : `<span class="etiq">${U.esc(p.etiqL)}</span>`}</div>
+              <div class="vivo-nombre">${U.esc(p.local ? L.n : p.etiqL)}</div>
+              <div class="vivo-tarjetas">${tarjetasL}</div>
+            </div>
+            <div class="vivo-centro">
+              <div class="vivo-goles">${res.gl} − ${res.gv}</div>
+              ${esDescanso
+                ? `<div class="vivo-reloj">${res.periodo === 'BT' ? 'Pausa ET' : 'Descanso'}</div>`
+                : esPenales
+                ? `<div class="vivo-reloj">${res.penales ? `Pen. ${res.penales.gl}–${res.penales.gv}` : 'Penales'}</div>`
+                : `<div class="vivo-reloj"
+                data-min-base="${res?.minuto ?? ''}"
+                data-min-extra="${res?.minutoExtra ?? ''}"
+                data-min-at="${U.minutoAtEfectivo(res) ?? ''}"
+                data-periodo="${res?.periodo ?? ''}">${U.esc(U.formatMinutoLive(res))}</div>`}
+            </div>
+            <div class="vivo-equipo">
+              <div class="vivo-bandera">${p.visitante ? (V.b || '⚽') : `<span class="etiq">${U.esc(p.etiqV)}</span>`}</div>
+              <div class="vivo-nombre">${U.esc(p.visitante ? V.n : p.etiqV)}</div>
+              <div class="vivo-tarjetas">${tarjetasV}</div>
+            </div>
+          </div>
+          ${(p.estadio || p.sede) ? `<div class="vivo-estadio">🏟 ${U.esc(p.estadio || p.sede)}</div>` : ''}
+          ${esPenales ? htmlPenalesLive(res, p) : eventosHTML}
+        </div>
+      `;
+    } else {
+      encabezado = `
+        <div class="partido__meta">
+          <span class="etiqueta etiqueta--dorada">${U.esc(p.etapa)}</span>
+          ${badge}
+          <span>${hora}</span>
+          <span class="empuja">🏟 ${U.esc(p.estadio || p.sede)}</span>
+        </div>
+        <div class="partido__centro">
+          <div class="equipo"><span class="bandera">${p.local ? (L.b || '⚽') : `<span class="etiq">${U.esc(p.etiqL)}</span>`}</span><span class="nombre">${U.esc(p.local ? L.n : p.etiqL)}</span></div>
+          ${centro}
+          <div class="equipo equipo--v"><span class="nombre">${U.esc(p.visitante ? V.n : p.etiqV)}</span><span class="bandera">${p.visitante ? (V.b || '⚽') : `<span class="etiq">${U.esc(p.etiqV)}</span>`}</span></div>
+        </div>
+      `;
+    }
+
+    /* ---- TARJETA COMPACTA para partidos finalizados ---- */
+    if (est === 'finalizado' && !sinEquipos) {
+      return `
+        <article class="partido partido--fin-compacto partido--fin-mini" id="p-${p.id}">
+          <div class="fin-cabeza">
+            <span class="etiqueta etiqueta--dorada fin-etapa">${U.esc(p.etapa)}</span>
+            <span class="etiqueta etiqueta--fin">FIN</span>
+          </div>
+          <div class="fin-fila fin-fila--mini">
+            <div class="fin-equipo fin-equipo--l">
+              <div class="fin-ban fin-ban--mini">${L.b||'⚽'}</div>
+              <div class="fin-nom">${U.esc(L.n)}</div>
+            </div>
+            <div class="fin-score fin-score--mini">${res.gl}–${res.gv}</div>
+            <div class="fin-equipo fin-equipo--v">
+              <div class="fin-ban fin-ban--mini">${V.b||'⚽'}</div>
+              <div class="fin-nom">${U.esc(V.n)}</div>
+            </div>
+          </div>
+          <div class="fin-acciones">
+            <button class="boton boton--fantasma boton--mini" data-ver-detalle="${p.id}" type="button">📋 Ver resumen</button>
+            ${`<button class="boton boton--fantasma boton--mini" data-ver-prons="${p.id}" type="button">👥 Pronósticos${predsByPartido[p.id]?.length ? ` (${predsByPartido[p.id].length})` : ''}</button>`}
+          </div>
+        </article>`;
+    }
+
+    /* zona de pronóstico (compacta: solo cuando el partido ya empezó) */
+    let zona = '';
+    if (sinEquipos) {
+      zona = `<div class="pronostico"><span class="pronostico__guardado">Los equipos se definen al cerrar la fase anterior.</span></div>`;
+    } else if (est === 'en_juego' && pred) {
+      zona = `<div class="pred-badge-live">Tu pronóstico: <strong>${pred.gl}–${pred.gv}</strong></div>`;
+    } else if (!estaAbierto && est !== 'en_juego') {
+      const cal = Puntos.calificar(pred, res, p.fase);
+      const estadoTexto = est === 'aplazado' ? '⏸️ Partido aplazado'
+                        : est === 'cerrado' ? '🔒 Pronósticos cerrados'
+                        : est === 'finalizado' ? '🏁 Partido finalizado' : '';
+      const motivoAplazamiento = est === 'aplazado' && res?.motivoAplazamiento ? `<span class="pronostico__guardado" style="font-size:11px;color:var(--tinta-2)">Motivo: ${U.esc(res.motivoAplazamiento)}</span>` : '';
+      if (estadoTexto || motivoAplazamiento || (est === 'finalizado' && pred)) {
+        zona = `
+          <div class="pronostico pronostico--compacto">
+            ${estadoTexto ? `<span class="pronostico__guardado" style="color:var(--dorado)">${estadoTexto}</span>` : ''}
+            ${motivoAplazamiento}
+            ${!pred && est !== 'finalizado' ? `<span class="pronostico__guardado">No alcanzaste a pronosticar 😅</span>` : ''}
+            ${est === 'finalizado' && pred ? `<span class="puntos-ganados">${cal.pts > 0 ? '+' + cal.pts + ' pts' : '0 pts'} ${cal.tipo === 'exacto' ? '🎯 ¡Exacto!' : cal.tipo === 'resultado' ? '✔ Resultado' : ''}</span>` : ''}
+          </div>`;
+      }
+    } else if (estaAbierto && pred) {
+      zona = `<div class="pred-status">Guardado: ${pred.gl}–${pred.gv} ✓</div>`;
+    }
+
+    const bannerHtml = renderPronosticosBanner(p, res);
+    const accionesHtml = renderPartidoAcciones(p, res);
+
+    return `
+      <article class="partido partido--compacto ${est === 'en_juego' ? 'partido--vivo' : ''}" id="p-${p.id}">
+        ${encabezado}
+        ${bannerHtml}
+        ${zona}
+        ${accionesHtml}
+      </article>`;
+  }
+
+  /* --- visibilidad de pronósticos ajenos ----------------------- */
+  function puedeVerPronosticosAjeno(p, res) {
+    if (yo.rol === 'admin' || U.esAdmin(yo.correo)) return true;
+    return !partidoAbierto(p, res);
+  }
+
+  /* --- Banner de pronósticos (parte superior del partido) -------- */
+  function renderPronosticosBanner(p, res) {
+    const predApi = res?.prediccion;
+    const preds = predsByPartido[p.id] || [];
+    const pred = misPred[p.id];
+    const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+    let partes = [];
+
+    if (predApi) {
+      const pn = s => Math.min(100, Math.max(0, parseInt(s) || 0));
+      const pl = pn(predApi.pct.l), pe = pn(predApi.pct.e), pv = pn(predApi.pct.v);
+      partes.push(`
+        <div class="pronos-banner__api">
+          <span class="pronos-banner__label">📊 Modelo Poisson-XG</span>
+          <div class="pronos-banner__bar">
+            <div class="pronos-banner__seg pronos-banner__seg--l" style="width:${pl}%" title="${L.n} ${pl}%"></div>
+            <div class="pronos-banner__seg pronos-banner__seg--e" style="width:${pe}%" title="Empate ${pe}%"></div>
+            <div class="pronos-banner__seg pronos-banner__seg--v" style="width:${pv}%" title="${V.n} ${pv}%"></div>
+          </div>
+          <div class="pronos-banner__pct">
+            <span>${L.b} ${pl}%</span>
+            <span>Empate ${pe}%</span>
+            <span>${pv}% ${V.b}</span>
+          </div>
+          <span class="pronos-banner__score">Marcador esperado: <strong>${predApi.goles.l}–${predApi.goles.v}</strong></span>
+        </div>`);
+    }
+
+    if (preds.length) {
+      const estaAbierto = partidoAbierto(p, res);
+      const revelados = puedeVerPronosticosAjeno(p, res);
+      const datoPro = calcDatoProComunidad(p);
+      if (datoPro) {
+        partes.push(`
+          <div class="pronos-banner__com pronos-banner__com--tend">
+            <span class="pronos-banner__label">📈 Tendencias</span>
+            <div class="pronos-banner__tend">${datoPro}</div>
+          </div>`);
+      } else if (estaAbierto && !revelados) {
+        partes.push(`<div class="pronos-banner__com"><span>👥 ${preds.length} pronósticos</span><span class="pronos-banner__hint">Tendencias al pitazo</span></div>`);
+      }
+    }
+
+    if (pred) {
+      partes.push(`<div class="pronos-banner__com"><span class="pronos-banner__label">✏️ Tu pick</span><strong>${pred.gl}–${pred.gv}</strong></div>`);
+    }
+
+    return partes.length ? `<div class="pronos-banner">${partes.join('')}</div>` : '';
+  }
+
+  function renderPartidoAcciones(p, res) {
+    const pid = p.id;
+    const preds = predsByPartido[pid] || [];
+    const revelados = puedeVerPronosticosAjeno(p, res);
+    const estaAbierto = partidoAbierto(p, res);
+    const pronsBtn = `<button class="boton boton--fantasma boton--mini" data-ver-prons="${pid}" type="button">👥 Pronósticos${preds.length && (revelados || !estaAbierto) ? ` (${preds.length})` : ''}</button>`;
+    return `<div class="partido-acciones">
+      ${pronsBtn}
+      <button class="boton boton--fantasma boton--mini" data-abrir-analisis="${pid}" type="button">📈 Análisis y stats</button>
+    </div>`;
+  }
+
+  /* --- Pestañas de análisis (para modal) ------------------------ */
+  function buildAnalysisTabs(p, res) {
+    const pid = p.id;
+    const est = U.estadoPartido(p, res);
+    const tabActiva = tabsActivos.get(pid) || 'stats';
+
+    const tabs = [];
+    const addTab = (id, label, html, force) => {
+      if (!force && !html) return;
+      tabs.push({ id, label, html: html || '<p class="stats-vacio">Datos no disponibles aún.</p>' });
+    };
+
+    const statsHtml = (res?.tarjetas && (res.tarjetas[p.local] || res.tarjetas[p.visitante]))
+      ? renderMatchStats(p, res) : '';
+    addTab('stats', est === 'en_juego' ? '📊 En vivo' : '📊 Stats', statsHtml, est === 'en_juego' || est === 'finalizado' || !!statsHtml);
+
+    const eventos = res?.eventos || [];
+    addTab('eventos', '⚡ Eventos', eventos.length ? renderIncidencias(eventos, p) : '', eventos.length > 0);
+
+    const alin = res?.alineacion;
+    addTab('lineups', '👕 Alineaciones', (alin && alin.length) ? renderAlineaciones(alin, p) : '', alin?.length >= 2);
+
+    const h2h = res?.h2h;
+    addTab('h2h', '🔄 H2H', h2h ? renderH2H(h2h, p) : '', !!h2h);
+
+    const lesiones = res?.lesiones;
+    addTab('lesiones', '🏥 Bajas', lesiones ? renderLesiones(lesiones, p) : '', !!lesiones);
+
+    const predApi = res?.prediccion;
+    if (predApi?.consejo) addTab('pred', '🎯 Predicción', renderPrediccionDetalle(predApi, p));
+
+    addTab('comunidad', '👥 Polla', renderComunidadTab(p), true);
+
+    const tendHtml = renderTendenciasTab(p, res);
+    if (tendHtml) addTab('tendencias', '📈 Tendencias', tendHtml, true);
+
+    if (!tabs.length) return { tabs: [], activa: 'stats' };
+
+    const tabIds = tabs.map(t => t.id);
+    const activa = tabIds.includes(tabActiva) ? tabActiva : tabs[0].id;
+    return { tabs, activa };
+  }
+
+  function abrirModalAnalisis(pid) {
+    const p = partidosEf().find(x => x.id === pid);
+    const res = resultados[pid] || null;
+    if (!p) return;
+    const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+    const { tabs, activa } = buildAnalysisTabs(p, res);
+    if (!tabs.length) {
+      U.toast('Datos de análisis no disponibles aún.', 'info');
+      return;
+    }
+    document.getElementById('modal-analisis-titulo').innerHTML =
+      `${L.b || '⚽'} ${U.esc(L.n || p.etiqL)} vs ${U.esc(V.n || p.etiqV)} ${V.b || '⚽'}`;
+    document.getElementById('modal-analisis-tabs').innerHTML = tabs.map(t =>
+      `<button class="match-pro-tab ${t.id === activa ? 'activo' : ''}" data-mtab="${t.id}" data-pid="${pid}" type="button" role="tab">${t.label}</button>`
+    ).join('');
+    document.getElementById('modal-analisis-panes').innerHTML = tabs.map(t =>
+      `<div class="modal-analisis__pane ${t.id === activa ? 'activo' : ''}" data-mpane="${t.id}" data-pid="${pid}" role="tabpanel">${t.html}</div>`
+    ).join('');
+    document.getElementById('modal-analisis').classList.add('activo');
+    requestAnimationFrame(() => posicionarIndicadorTab(pid));
+  }
+
+  function posicionarIndicadorTab(pid) {
+    const modal = document.getElementById('modal-analisis');
+    const indicador = document.getElementById('modal-tab-indicator');
+    const activo = modal.querySelector('.match-pro-tab.activo');
+    const wrap = document.querySelector('.modal-analisis__tabs-wrap');
+    if (!indicador || !activo || !wrap) return;
+    const wrapRect = wrap.getBoundingClientRect();
+    const tabRect = activo.getBoundingClientRect();
+    indicador.style.width = `${tabRect.width}px`;
+    indicador.style.transform = `translateX(${tabRect.left - wrapRect.left}px)`;
+  }
+
+  function renderComunidadTab(p) {
+    const pid = p.id;
+    const preds = predsByPartido[pid] || [];
+    const res = resultados[pid] || {};
+    const pred = misPred[pid];
+    let html = '';
+    if (pred) {
+      html += `<div class="tarjeta-polla-info pronostico-usuario-box"><span>Tu pronóstico: <strong>${pred.gl}–${pred.gv}</strong></span></div>`;
+    }
+    if (!preds.length) {
+      return html + '<p class="stats-vacio">Aún no hay pronósticos. ¡Sé el primero!</p>';
+    }
+    const estaAbierto = partidoAbierto(p, res);
+    const revelados = puedeVerPronosticosAjeno(p, res);
+    if (estaAbierto && !revelados) {
+      return html + `<div class="tarjeta-polla-info comunidad-box"><p class="comunidad-msg">${preds.length} pronósticos · se revelan al iniciar el partido.</p></div>`;
+    }
+    return html + renderStats(p, { hideVerProns: true }).replace('partido__stats', 'partido__stats partido__stats--tab');
+  }
+
+  function renderTendenciasTab(p, res) {
+    if (!p.local || !p.visitante) return '';
+    const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+    const formaL = Puntos.formaEquipo(p.local, resultados);
+    const formaV = Puntos.formaEquipo(p.visitante, resultados);
+    const icono = r => r === 'V' ? '✅' : r === 'E' ? '🤝' : '❌';
+    const filaForma = (eq, forma) => forma.length
+      ? `<div class="forma-equipo"><span class="forma-flag">${eq.b}</span><span class="forma-nom">${U.esc(eq.n)}</span><span class="forma-racha">${forma.map(icono).join('')}</span></div>`
+      : `<div class="forma-equipo"><span class="forma-flag">${eq.b}</span><span class="forma-nom">${U.esc(eq.n)}</span><span class="forma-racha forma-racha--vacio">Sin partidos previos</span></div>`;
+
+    const hist = Puntos.historialComunidad(p, predsByPartido, resultados);
+    const histHtml = hist
+      ? `<div class="tarjeta-polla-info comunidad-historial"><h3 class="subtitulo-polla">📊 Historial comunidad</h3><p>El <strong>${hist.pct}%</strong> acertó el ganador en la ${U.esc(hist.label)} (${hist.partidos} partido${hist.partidos !== 1 ? 's' : ''}).</p></div>`
+      : '';
+
+    const preds = predsByPartido[p.id] || [];
+    let tendCom = '';
+    if (preds.length) {
+      const revelados = puedeVerPronosticosAjeno(p, res);
+      const estaAbierto = partidoAbierto(p, res);
+      if (!estaAbierto || revelados) {
+        tendCom = renderStats(p, { hideVerProns: true, soloTendencia: true });
+      }
+    }
+
+    const filaYo = Puntos.tabla([{ uid: yo.uid, nombre: yo.nombre, estado: 'activo', creado: 0 }], { [yo.uid]: misPred }, resultados, ajustes)[0];
+    const rachaYo = filaYo?.racha || 0;
+    const rachaHtml = rachaYo > 0
+      ? `<div class="tarjeta-polla-info racha-yo"><span>🔥 Tu racha activa: <strong>${rachaYo}</strong> partido${rachaYo !== 1 ? 's' : ''} sumando puntos seguidos.</span></div>`
+      : '';
+
+    return `<div class="tendencias-panel">
+      <div class="tarjeta-polla-info"><h3 class="subtitulo-polla">📈 Forma reciente (últimos 5)</h3>${filaForma(L, formaL)}${filaForma(V, formaV)}<p class="h2h-nota">✅ Victoria · 🤝 Empate · ❌ Derrota (más reciente a la derecha)</p></div>
+      ${histHtml}${rachaHtml}${tendCom}
+    </div>`;
+  }
+
+  function renderH2H(h2h, p) {
+    const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+    const total = h2h.w1 + h2h.empate + h2h.w2 || 1;
+    const recientes = (h2h.recientes || []).slice(0, 5).map(m =>
+      `<span class="h2h-score">${m.gl}–${m.gv}</span>`
+    ).join('');
+    return `<div class="tarjeta-polla-info">
+      <h3 class="subtitulo-polla">🔄 Historial directo</h3>
+      <div class="h2h-resumen">
+        <div class="h2h-equipo"><span>${L.b}</span><strong>${h2h.w1}</strong><span>victorias</span></div>
+        <div class="h2h-equipo h2h-equipo--e"><strong>${h2h.empate}</strong><span>empates</span></div>
+        <div class="h2h-equipo"><span>${V.b}</span><strong>${h2h.w2}</strong><span>victorias</span></div>
+      </div>
+      ${recientes ? `<div class="h2h-recientes"><span class="h2h-label">Últimos ${h2h.recientes.length}:</span> ${recientes}</div>` : ''}
+      <p class="h2h-nota">Basado en los últimos ${total} enfrentamientos registrados.</p>
+    </div>`;
+  }
+
+  function renderLesiones(lesiones, p) {
+    const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+    const fila = (cod, eq) => {
+      const lista = lesiones[cod];
+      if (!lista?.length) return '';
+      return `<div class="lesiones-equipo">
+        <div class="lesiones-header">${eq.b} ${U.esc(eq.n)}</div>
+        ${lista.map(j => `<div class="lesion-fila"><span>${U.esc(j.nombre)}</span><span class="lesion-razon">${U.esc(j.razon || 'Ausente')}</span></div>`).join('')}
+      </div>`;
+    };
+    const html = fila(p.local, L) + fila(p.visitante, V);
+    if (!html) return '';
+    return `<div class="tarjeta-polla-info"><h3 class="subtitulo-polla">🏥 Bajas y lesiones</h3>${html}</div>`;
+  }
+
+  function renderPrediccionDetalle(pred, p) {
+    const L = FIXTURE.equipo(p.local);
+    const V = FIXTURE.equipo(p.visitante);
+    const pn = s => Math.min(100, Math.max(0, parseInt(s) || 0));
+    const pl = pn(pred.pct.l), pe = pn(pred.pct.e), pv = pn(pred.pct.v);
+    return `<div class="tarjeta-polla-info ia-analisis-box">
+      <div class="ia-header"><span class="ia-badge">📊 Poisson-XG</span><strong>Distribución de probabilidad</strong></div>
+      <div class="ia-cuerpo">
+        <div class="pred-api-grid">
+          <div class="pred-api-box pred-api-box--l"><div class="pred-api-flag">${L.b}</div><div class="pred-api-pct">${pl}%</div></div>
+          <div class="pred-api-box pred-api-box--e"><div class="pred-api-flag">Empate</div><div class="pred-api-pct">${pe}%</div></div>
+          <div class="pred-api-box pred-api-box--v"><div class="pred-api-flag">${V.b}</div><div class="pred-api-pct">${pv}%</div></div>
+        </div>
+        <p class="ia-prediccion-texto">Marcador esperado: <strong class="resaltado-amarillo">${pred.goles.l} – ${pred.goles.v}</strong></p>
+        ${pred.consejo ? `<p class="ia-prediccion-texto">💡 <strong>Consejo:</strong> ${U.esc(pred.consejo)}</p>` : ''}
+        ${pred.linea ? `<p class="ia-prediccion-texto">📏 Línea goles: ${U.esc(pred.linea)}</p>` : ''}
+      </div>
+    </div>`;
+  }
+
+  function renderAnalisisIA(analisisMd) {
+    const cuerpo = window.IA?.mdAHtml ? IA.mdAHtml(analisisMd) : U.esc(analisisMd).replace(/\n/g, '<br>');
+    return `<div class="tarjeta-polla-info ia-analisis-box">
+      <div class="ia-header"><span class="ia-badge">🤖 IA</span><strong>Análisis Predictivo</strong></div>
+      <div class="ia-cuerpo ia-analisis-md">${cuerpo}</div>
+    </div>`;
+  }
+
+  function renderStatsCompacto(p) {
+    const pid = p.id;
+    const preds = predsByPartido[pid] || [];
+    const res = resultados[pid] || {};
+    const pred = misPred[pid];
+
+    // Bloque de pronóstico del usuario
+    let pronosticoUsuario = '';
+    if (pred) {
+      const modTxt = pred.t ? `<span class="pron-mod-ts">Actualizado: ${U.fechaActualizacion(pred.t)}</span>` : '';
+      pronosticoUsuario = `
+        <div class="tarjeta-polla-info pronostico-usuario-box">
+          <span>Tu pronóstico: <strong>${pred.gl}–${pred.gv}</strong></span>
+          ${modTxt}
+        </div>`;
+    }
+
+    // Bloque de comunidad
+    let comunidad = '';
+    if (preds.length > 0) {
+      const estaAbierto = partidoAbierto(p, res);
+      const revelados = puedeVerPronosticosAjeno(p, res);
+      if (estaAbierto && !revelados) {
+        comunidad = `
+          <div class="tarjeta-polla-info comunidad-box">
+            <div class="comunidad-header">
+              <h3>📊 Comunidad</h3>
+              <span class="badge-votos">${preds.length} pronósticos</span>
+            </div>
+            <p class="comunidad-msg">Las predicciones se revelan al iniciar el partido.</p>
+          </div>`;
+      } else {
+      let local = 0, draw = 0, away = 0, processed = 0;
+
+      for (const pr of preds) {
+        const gl = Number(pr.gl), gv = Number(pr.gv);
+        if (isNaN(gl) || isNaN(gv)) continue;
+        processed++;
+        if (gl > gv) local++; else if (gl === gv) draw++; else away++;
+      }
+      const total = Math.max(1, local + draw + away);
+      const pct = n => Math.round((n / total) * 100);
+
+      comunidad = `
+        <div class="tarjeta-polla-info comunidad-box">
+          <div class="comunidad-header">
+            <h3>📊 ¿Qué opina la mayoría?</h3>
+            <button class="boton boton--fantasma boton--mini" data-ver-prons="${pid}" type="button">Ver ${processed} pron.</button>
+          </div>
+          <div class="barra-progreso-comunidad">
+            <div class="progreso-local" style="width: ${pct(local)}%;">Local ${pct(local)}%</div>
+            <div class="progreso-empate" style="width: ${pct(draw)}%;">Empate ${pct(draw)}%</div>
+            <div class="progreso-visita" style="width: ${pct(away)}%;">Visita ${pct(away)}%</div>
+          </div>
+        </div>`;
+    }
+    }
+
+    return `${pronosticoUsuario}${comunidad}`;
+  }
+
+  function calcDatoProComunidad(p) {
+    const preds = predsByPartido[p.id] || [];
+    if (!preds.length) return null;
+    const res = resultados[p.id];
+    if (partidoAbierto(p, res) && !puedeVerPronosticosAjeno(p, res)) return null;
+
+    let masDeDos = 0, ambosAnotan = 0, processed = 0, sumGl = 0, sumGv = 0;
+    for (const pr of preds) {
+      const gl = Number(pr.gl), gv = Number(pr.gv);
+      if (isNaN(gl) || isNaN(gv)) continue;
+      processed++;
+      sumGl += gl; sumGv += gv;
+      if (gl + gv >= 3) masDeDos++;
+      if (gl > 0 && gv > 0) ambosAnotan++;
+    }
+    if (!processed) return null;
+    const pct = n => Math.round((n / processed) * 100);
+    const pctMasDeDos = pct(masDeDos);
+    const pctAmbosAnotan = pct(ambosAnotan);
+    const avgGl = Math.round(sumGl / processed);
+    const avgGv = Math.round(sumGv / processed);
+
+    if (pctMasDeDos > 60) return `🔥 <b>Tendencia:</b> El ${pctMasDeDos}% cree que será un partido con muchos goles (3+).`;
+    if (pctMasDeDos < 35) return `🛡️ <b>Tendencia:</b> El ${100 - pctMasDeDos}% espera un partido cerrado (0 a 2 goles).`;
+    if (pctAmbosAnotan > 65) return `⚔️ <b>Tendencia:</b> El ${pctAmbosAnotan}% confía en que ambos equipos anotarán.`;
+    return `⚖️ <b>Tendencia:</b> Pronósticos divididos. Marcador promedio ${avgGl}–${avgGv}.`;
+  }
+
+  function renderStats(p, opts = {}) {
+    const pid = p.id;
+    const preds = predsByPartido[pid] || [];
+    if (!preds.length) return `<div class="partido__stats" style="text-align:center; padding: 12px; color: var(--tinta-3); font-size: 12.5px; background: rgba(0,0,0,0.15); border-radius: 10px; margin-top: 14px; border: 1px dashed rgba(255,255,255,0.1);">Aún no hay pronósticos para este partido. ¡Sé el primero!</div>`;
+    
+    const estaAbierto = partidoAbierto(p, resultados[pid]);
+    const revelados = puedeVerPronosticosAjeno(p, resultados[pid]);
+    if (estaAbierto && !revelados) {
+        return `<div class="partido__stats partido__stats--compact">
+            <div class="comunidad-header">
+                <strong>📊 Comunidad</strong>
+                <span class="badge-votos">${preds.length} pronósticos</span>
+            </div>
+            <p class="comunidad-msg">Las predicciones se revelan al iniciar el partido.</p>
+        </div>`;
+    }
+
+    let local = 0, draw = 0, away = 0, sumGl = 0, sumGv = 0, processed = 0;
+    const exactCounts = {};
+    let masDeDos = 0, ambosAnotan = 0;
+
+    for (const pr of preds) {
+      const gl = Number(pr.gl), gv = Number(pr.gv);
+      if (isNaN(gl) || isNaN(gv)) continue;
+      processed++;
+      sumGl += gl; sumGv += gv;
+      if (gl > gv) local++; else if (gl === gv) draw++; else away++;
+      const key = `${gl} – ${gv}`; exactCounts[key] = (exactCounts[key] || 0) + 1;
+      
+      if (gl + gv >= 3) masDeDos++;
+      if (gl > 0 && gv > 0) ambosAnotan++;
+    }
+    const total = Math.max(1, local + draw + away);
+    const pct = n => Math.round((n / total) * 100);
+    const avgGl = processed ? Math.round(sumGl / processed) : 0;
+    const avgGv = processed ? Math.round(sumGv / processed) : 0;
+    
+    const pctMasDeDos = pct(masDeDos);
+    const pctAmbosAnotan = pct(ambosAnotan);
+
+    const bar = `<div class="stat-bar" style="height: 6px; margin-bottom: 10px; background: rgba(255,255,255,0.05); border-radius: 6px; overflow: hidden; display: flex;">
+      <div class="stat-seg" style="width:${pct(local)}%; background: var(--verde-claro);"></div>
+      <div class="stat-seg" style="width:${pct(draw)}%; background: var(--tinta-3);"></div>
+      <div class="stat-seg" style="width:${pct(away)}%; background: var(--azul-claro);"></div>
+    </div>`;
+
+    const L = FIXTURE.equipo(p.local);
+    const V = FIXTURE.equipo(p.visitante);
+    const nomL = p.local ? L.n : 'Local';
+    const nomV = p.visitante ? V.n : 'Visitante';
+
+    const datoPro = calcDatoProComunidad(p) || `⚖️ <b>Tendencia Pro:</b> Marcador promedio ${avgGl}–${avgGv}.`;
+
+    if (opts.soloTendencia) {
+      return `<div class="partido__stats partido__stats--tab" style="font-size: 12px; color: var(--tinta-2);">${datoPro}</div>`;
+    }
+
+    const btnVer = opts.hideVerProns ? '' : `<button class="boton boton--fantasma boton--mini" data-ver-prons="${pid}" type="button" style="padding: 4px 10px; font-size: 11.5px; z-index: 2; position: relative;">👀 Ver ${processed} pron.</button>`;
+
+    return `<div class="partido__stats" style="background: rgba(0,0,0,0.15); padding: 14px; border-radius: 10px; margin-top: 14px; border: 1px solid rgba(255,255,255,0.05);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <strong style="font-size: 13px; color: var(--tinta-2); letter-spacing: 0.5px;">📊 ¿Qué opina la mayoría?</strong>
+        ${btnVer}
+      </div>
+      ${bar}
+      <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--tinta-3); margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+        <span style="color: var(--verde-claro);">🏠 ${U.esc(nomL)}: <b>${pct(local)}%</b></span>
+        <span>🤝 Empate: <b>${pct(draw)}%</b></span>
+        <span style="color: var(--azul-claro);">✈ ${U.esc(nomV)}: <b>${pct(away)}%</b></span>
+      </div>
+      <div style="font-size: 12px; color: var(--tinta-2); border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 10px;">
+        ${datoPro}
+      </div>
+    </div>`;
+  }
+
+  /* --- ESTADÍSTICAS PRO (predicción IA + alineaciones) --------- */
+  function renderProStats(p, res) {
+    const alin = res?.alineacion;
+    const stats = res?.tarjetas;
+    const eventos = res?.eventos;
+    const pred = res?.prediccion;
+    const est = U.estadoPartido(p, res);
+
+    let html = '';
+    if (pred) html += renderPrediccionAPI(pred, p);
+    if (alin && alin.length) html += renderAlineaciones(alin, p);
+    if (stats && (stats[p.local] || stats[p.visitante])) {
+      html += `<div class="tarjeta-polla-info stats-panel">
+        <h3 class="subtitulo-polla">${est === 'en_juego' ? '📊 Estadísticas en Vivo' : '📊 Estadísticas del Partido'}</h3>
+        ${renderMatchStats(p, res)}
+      </div>`;
+    }
+    if (eventos && eventos.length) html += renderIncidencias(eventos, p);
+
+    if (html) return html;
+    return '<p class="stats-vacio">Datos del partido no disponibles aún. Se actualizan automáticamente.</p>';
+  }
+
+  /* --- VISUALIZACIONES PERSONALIZADAS DE LA API --------------- */
+  function renderAlineaciones(alin, p) {
+    if (!alin || alin.length !== 2) return '';
+    const [eqL, eqV] = alin[0].cod === p.local ? [alin[0], alin[1]] : [alin[1], alin[0]];
+    const L = FIXTURE.equipo(p.local);
+    const V = FIXTURE.equipo(p.visitante);
+    const posLbl = { G: 'POR', D: 'DEF', M: 'MED', F: 'DEL' };
+
+    const filaJug = (j, esVisitante) => {
+      const pos = posLbl[j.pos] || j.pos || '';
+      if (esVisitante) {
+        return `<div class="lineup-row lineup-row--v">
+          <span class="lineup-pos-tag">${pos}</span>
+          <span class="lineup-nombre">${U.esc(j.n)}</span>
+          <span class="lineup-num-tag">${j.num}</span>
+        </div>`;
+      }
+      return `<div class="lineup-row">
+        <span class="lineup-num-tag">${j.num}</span>
+        <span class="lineup-nombre">${U.esc(j.n)}</span>
+        <span class="lineup-pos-tag">${pos}</span>
+      </div>`;
+    };
+
+    return `<div class="tarjeta-polla-info lineup-panel">
+      <h3 class="subtitulo-polla">👕 Alineaciones</h3>
+      <div class="lineup-formaciones">
+        <div class="lineup-form-box">
+          <span class="lineup-form-flag">${L.b}</span>
+          <span class="lineup-form-num">${U.esc(eqL.f || '—')}</span>
+        </div>
+        <span class="lineup-form-vs">vs</span>
+        <div class="lineup-form-box lineup-form-box--v">
+          <span class="lineup-form-num">${U.esc(eqV.f || '—')}</span>
+          <span class="lineup-form-flag">${V.b}</span>
+        </div>
+      </div>
+      <div class="lineup-seccion-header">Titulares</div>
+      <div class="lineup-grid lineup-grid--pro">
+        <div class="lineup-col">
+          <div class="lineup-equipo-nom">${L.b} ${U.esc(L.n)}</div>
+          ${(eqL.xi || []).map(j => filaJug(j, false)).join('')}
+        </div>
+        <div class="lineup-sep"></div>
+        <div class="lineup-col lineup-col--v">
+          <div class="lineup-equipo-nom">${U.esc(V.n)} ${V.b}</div>
+          ${(eqV.xi || []).map(j => filaJug(j, true)).join('')}
+        </div>
+      </div>
+      ${(eqL.supl?.length || eqV.supl?.length) ? `
+      <div class="lineup-suplentes lineup-suplentes--bottom">
+        <div class="lineup-seccion-header">Suplentes</div>
+        <div class="lineup-grid lineup-grid--pro lineup-grid--supl">
+          <div class="lineup-col">
+            <div class="lineup-equipo-nom lineup-equipo-nom--supl">${L.b} ${U.esc(L.n)}</div>
+            ${(eqL.supl || []).map(j => `<div class="lineup-supl-row"><span class="lineup-supl-num">${j.num}</span><span>${U.esc(j.n)}</span></div>`).join('') || '<span class="stats-vacio">—</span>'}
+          </div>
+          <div class="lineup-sep"></div>
+          <div class="lineup-col lineup-col--v">
+            <div class="lineup-equipo-nom lineup-equipo-nom--supl">${U.esc(V.n)} ${V.b}</div>
+            ${(eqV.supl || []).map(j => `<div class="lineup-supl-row"><span class="lineup-supl-num">${j.num}</span><span>${U.esc(j.n)}</span></div>`).join('') || '<span class="stats-vacio">—</span>'}
+          </div>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }
+
+  function renderEstadisticas(stats, p) {
+    const stL = stats[p.local] || {};
+    const stV = stats[p.visitante] || {};
+    const L = FIXTURE.equipo(p.local);
+    const V = FIXTURE.equipo(p.visitante);
+    
+    const barra = (label, valL, valV, max, suffix = '') => {
+      const pctL = max ? (valL / max) * 100 : 50;
+      const pctV = max ? (valV / max) * 100 : 50;
+      return `
+        <div style="margin-bottom: 12px;">
+          <div style="display:flex; justify-content:space-between; font-size:12px; margin-bottom:4px;">
+            <span style="color:${valL > valV ? 'var(--verde-claro)' : 'var(--tinta-2)'}">${valL}${suffix}</span>
+            <span style="color:var(--tinta-3); font-size:11px;">${label}</span>
+            <span style="color:${valV > valL ? 'var(--azul-claro)' : 'var(--tinta-2)'}">${valV}${suffix}</span>
+          </div>
+          <div style="display:flex; gap:4px; height:8px;">
+            <div style="flex:${pctL}; background:${valL > valV ? 'var(--verde-claro)' : 'rgba(255,255,255,0.2)'}; border-radius:4px 0 0 4px;"></div>
+            <div style="flex:${pctV}; background:${valV > valL ? 'var(--azul-claro)' : 'rgba(255,255,255,0.2)'}; border-radius:0 4px 4px 0;"></div>
+          </div>
+        </div>`;
+    };
+    
+    return `<div class="tarjeta-polla-info">
+      <h3 class="subtitulo-polla">📊 Estadísticas en Vivo</h3>
+      ${barra('Posesión', stL.posesion || 0, stV.posesion || 0, 100, '%')}
+      ${barra('Tiros al arco', stL.tirosArc || 0, stV.tirosArc || 0, Math.max(stL.tirosArc, stV.tirosArc, 1))}
+      ${barra('Tiros totales', stL.tirosTot || 0, stV.tirosTot || 0, Math.max(stL.tirosTot, stV.tirosTot, 1))}
+      ${barra('Corners', stL.corners || 0, stV.corners || 0, Math.max(stL.corners, stV.corners, 1))}
+      ${barra('Faltas', stL.faltas || 0, stV.faltas || 0, Math.max(stL.faltas, stV.faltas, 1))}
+    </div>`;
+  }
+
+  function renderIncidencias(eventos, p) {
+    if (!eventos || !eventos.length) return '';
+
+    const evL = eventos.filter(e => e.eq === p.local).sort((a,b) => a.m - b.m);
+    const evV = eventos.filter(e => e.eq === p.visitante).sort((a,b) => a.m - b.m);
+
+    if (!evL.length && !evV.length) return '';
+
+    const evIcon = t => t==='gol'?'⚽':t==='roja'?'🟥':t==='amarilla'?'🟨':t==='gol_anulado'?'⚽❌':'🔄';
+    const minStr = e => `${e.m}${e.x ? '+' + e.x : ''}′`;
+
+    const fmt = (e, esVisitante) => {
+      const claseAnulado = e.t === 'gol_anulado' ? 'evento--anulado' : '';
+      const jugador = `<span class="evento-jugador">${U.esc(e.j)}</span>`;
+      const icono = `<span class="evento-icono">${evIcon(e.t)}</span>`;
+      const minuto = `<span class="evento-min">${minStr(e)}</span>`;
+
+      return `<div class="evento ${esVisitante ? 'evento--v' : ''} ${claseAnulado}" style="font-size: 12px; padding: 4px 0;">
+          ${esVisitante ? minuto + jugador + icono : icono + jugador + minuto}
+      </div>`;
+    };
+      
+    return `<div class="tarjeta-polla-info">
+      <h3 class="subtitulo-polla">⚡ Incidencias en Vivo</h3>
+      <div class="lineup-grid" style="gap: 12px; margin-top: 10px;">
+        <div class="lineup-col">
+          ${evL.map(e => fmt(e, false)).join('')}
+        </div>
+        <div class="lineup-sep"></div>
+        <div class="lineup-col lineup-col--v">
+          ${evV.map(e => fmt(e, true)).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderPrediccionAPI(pred, p) {
+    const L = FIXTURE.equipo(p.local);
+    const V = FIXTURE.equipo(p.visitante);
+    const pn = s => Math.min(100, Math.max(0, parseInt(s) || 0));
+    const pl = pn(pred.pct.l), pe = pn(pred.pct.e), pv = pn(pred.pct.v);
+    
+    return `<div class="tarjeta-polla-info ia-analisis-box">
+      <div class="ia-header">
+        <span class="ia-badge">🤖 API</span>
+        <strong>Predicción del Modelo</strong>
+      </div>
+      <div class="ia-cuerpo">
+        <div style="display:flex; gap:8px; margin-bottom:12px;">
+          <div style="flex:1; text-align:center; padding:8px; background:rgba(34,197,94,.1); border-radius:6px;">
+            <div style="font-size:11px; color:var(--tinta-3);">${L.b}</div>
+            <div style="font-size:18px; font-weight:bold; color:var(--verde-claro);">${pl}%</div>
+          </div>
+          <div style="flex:1; text-align:center; padding:8px; background:rgba(148,163,184,.1); border-radius:6px;">
+            <div style="font-size:11px; color:var(--tinta-3);">Empate</div>
+            <div style="font-size:18px; font-weight:bold; color:var(--tinta-2);">${pe}%</div>
+          </div>
+          <div style="flex:1; text-align:center; padding:8px; background:rgba(59,130,246,.1); border-radius:6px;">
+            <div style="font-size:11px; color:var(--tinta-3);">${V.b}</div>
+            <div style="font-size:18px; font-weight:bold; color:var(--azul-claro);">${pv}%</div>
+          </div>
+        </div>
+        <p class="ia-prediccion-texto">
+          Marcador esperado: <strong style="color:var(--dorado); font-family:var(--fuente-marcador);">${pred.goles.l} – ${pred.goles.v}</strong>
+        </p>
+      </div>
+    </div>`;
+  }
+
+  /* --- ESTADÍSTICAS DEL PARTIDO (comparativa) ------------------- */
+  function renderMatchStats(p, res) {
+    const tL = res?.tarjetas?.[p.local]    || {};
+    const tV = res?.tarjetas?.[p.visitante] || {};
+    const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+    const fila = (label, vL, vV) => {
+      if (vL == null && vV == null) return '';
+      const nl = parseFloat(vL) || 0, nv = parseFloat(vV) || 0;
+      const tot = nl + nv || 1;
+      const pL = Math.round(nl / tot * 100), pV = 100 - pL;
+      return `<div class="mstat-fila">
+        <span class="mstat-val mstat-val--l">${vL ?? '—'}</span>
+        <div class="mstat-centro">
+          <div class="mstat-bar">
+            <div class="mstat-fill mstat-fill--l" style="width:${pL}%"></div>
+            <div class="mstat-fill mstat-fill--v" style="width:${pV}%"></div>
+          </div>
+          <div class="mstat-label">${label}</div>
+        </div>
+        <span class="mstat-val mstat-val--v">${vV ?? '—'}</span>
+      </div>`;
+    };
+    if (!Object.keys(tL).length && !Object.keys(tV).length)
+      return '<div style="padding:10px;text-align:center;color:var(--tinta-3);font-size:12.5px;">Estadísticas no disponibles aún.</div>';
+    return `<div class="match-stats-grid">
+      <div class="mstat-equipos">
+        <span>${L.b} ${U.esc(L.n)}</span>
+        <span></span>
+        <span>${U.esc(V.n)} ${V.b}</span>
+      </div>
+      ${fila('Posesión',        tL.posesion,       tV.posesion)}
+      ${fila('Tiros al arco',   tL.tirosArc,       tV.tirosArc)}
+      ${fila('Tiros totales',   tL.tirosTot,       tV.tirosTot)}
+      ${fila('Córners',         tL.corners,        tV.corners)}
+      ${fila('Fuera de juego',  tL.fueras,         tV.fueras)}
+      ${fila('Precisión pases', tL.precisionPases, tV.precisionPases)}
+      ${fila('Paradas',         tL.paradas,        tV.paradas)}
+      ${fila('Faltas',          tL.faltas,         tV.faltas)}
+    </div>`;
+  }
+
+  /* Solo la alineación (para el modal de finalizado) */
+  function renderLineupSolo(p, res) {
+    const alin = res?.alineacion;
+    if (!alin || alin.length < 2) return '';
+    const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+    const [eqL, eqV] = alin[0].cod === p.local ? [alin[0], alin[1]] : [alin[1], alin[0]];
+    if (!eqL || !eqV) return '';
+    const posI = {G:'🧤',D:'🛡',M:'⚙️',F:'⚡'};
+    const jug = (eq, izq) => (eq.xi||[]).map(j =>
+      `<div class="lineup-j ${izq?'':'lineup-j--v'}"><span class="lineup-num">${j.num}</span><span class="lineup-pos">${posI[j.pos]||''}</span><span>${U.esc(j.n)}</span></div>`
+    ).join('');
+    const supl = (eq, izq) => (eq.supl||[]).map(j =>
+      `<div class="lineup-supl-row ${izq?'':'lineup-supl-row--v'}"><span class="lineup-supl-num">${j.num}</span><span>${U.esc(j.n)}</span></div>`
+    ).join('');
+    const tieneSupl = (eqL.supl?.length || eqV.supl?.length);
+    return `<div class="pro-panel pro-panel--lineup">
+      <div class="pro-header">👕 Alineaciones</div>
+      <div class="lineup-grid">
+        <div class="lineup-col"><div class="lineup-form">${L.b} ${U.esc(eqL.f)}</div>${jug(eqL,true)}</div>
+        <div class="lineup-sep"></div>
+        <div class="lineup-col lineup-col--v"><div class="lineup-form">${U.esc(eqV.f)} ${V.b}</div>${jug(eqV,false)}</div>
+      </div>
+      ${tieneSupl ? `<div class="lineup-suplentes">
+        <div class="lineup-seccion-header">Suplentes</div>
+        <div class="lineup-grid lineup-grid--pro">
+          <div class="lineup-col">${supl(eqL, true) || '<span class="stats-vacio">—</span>'}</div>
+          <div class="lineup-sep"></div>
+          <div class="lineup-col lineup-col--v">${supl(eqV, false) || '<span class="stats-vacio">—</span>'}</div>
+        </div>
+      </div>` : ''}
+    </div>`;
+  }
+
+  /* Contenido del modal de resumen de partido finalizado */
+  function buildModalDetalle(p, res) {
+    const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+    const eventos = res?.eventos || [];
+    const pred = misPred[p.id];
+    const cal = pred ? Puntos.calificar(pred, res, p.fase) : null;
+
+    // Cabecera marcador
+    const cabHtml = `
+      <div style="text-align:center;padding:16px 0 8px">
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:8px">
+          <div style="text-align:center"><div style="font-size:36px">${L.b||'⚽'}</div><div style="font-size:13px;color:var(--tinta-2)">${U.esc(L.n)}</div></div>
+          <div style="font-family:var(--fuente-marcador);font-size:38px;color:var(--tinta);padding:0 8px">${res.gl} – ${res.gv}</div>
+          <div style="text-align:center"><div style="font-size:36px">${V.b||'⚽'}</div><div style="font-size:13px;color:var(--tinta-2)">${U.esc(V.n)}</div></div>
+        </div>
+        <div><span class="etiqueta etiqueta--dorada">${U.esc(p.etapa)}</span> <span class="etiqueta etiqueta--fin">FINAL</span></div>
+      </div>`;
+
+    // Tu pronóstico con mensaje dinámico
+    const predHtml = `<div style="text-align:center;padding:10px 0;border-top:1px solid var(--linea)">
+      ${pred ? `<div style="font-size:12px;color:var(--tinta-3);margin-bottom:4px">Tu pronóstico: <b style="color:var(--tinta)">${pred.gl}–${pred.gv}</b></div>` : ''}
+      ${mensajePuntos(cal, pred)}
+    </div>`;
+
+    // Eventos (goles + tarjetas rojas)
+    const evImportantes = eventos.filter(e => e.t === 'gol' || e.t === 'roja').sort((a,b) => a.m - b.m);
+    let evHtml = '';
+    if (evImportantes.length) {
+      const filas = evImportantes.map(e => {
+        const ico = e.t === 'gol' ? '⚽' : '🟥';
+        const esL = e.eq === p.local;
+        return esL
+          ? `<div class="detalle-ev">${ico} <b>${U.esc(e.j)}</b> <span class="ev-min">${e.m}${e.x?'+'+e.x:''}′</span></div>`
+          : `<div class="detalle-ev detalle-ev--v"><span class="ev-min">${e.m}${e.x?'+'+e.x:''}′</span> <b>${U.esc(e.j)}</b> ${ico}</div>`;
+      }).join('');
+      evHtml = `<div style="border-top:1px solid var(--linea);padding:10px 0">${filas}</div>`;
+    }
+
+    // Stats + alineación + predicciones comunidad
+    const statsHtml = (res?.tarjetas && Object.keys(res.tarjetas).length)
+      ? `<div style="border-top:1px solid var(--linea);padding-top:10px">${renderMatchStats(p, res)}</div>` : '';
+    const lineupHtml = renderLineupSolo(p, res);
+    const comHtml = `<div style="border-top:1px solid var(--linea);padding-top:10px">${renderStats(p, { hideVerProns: true })}</div>`;
+
+    return cabHtml + predHtml + evHtml + statsHtml + lineupHtml + comHtml;
+  }
+
+  let tickerStructFp = '';
+
+  function pintarCuadro() {
+    if (!window.Llaves) return;
+    Llaves.pintar(document.getElementById('contenedor-cuadro'), { resultados, ajustes });
+  }
+
+  function partidosTicker() {
+    const hoyLocal = U.fechaColombia();
+    const manana = U.fechaColombia(new Date(Date.now() + 86400000));
+    const pasadoManana = U.fechaColombia(new Date(Date.now() + 2 * 86400000));
+    return U.dedupePartidos(
+      partidosEf()
+      .filter(p => p.local && p.visitante && p.utc)
+      .filter(p => {
+        const est = U.estadoPartido(p, resultados[p.id]);
+        return U.esPartidoCercano(p, hoyLocal, manana, resultados)
+          || est === 'en_juego' || est === 'iniciando';
+      }),
+      { misPred, predsByPartido, resultados }
+    ).sort((a, b) => (a.utc || '').localeCompare(b.utc || ''));
+  }
+
+  function syncRelojDataset(el, res) {
+    if (!el || !res) return;
+    const min = U.minutoNum(res.minuto);
+    const minStr = min != null ? String(min) : '';
+    const extra = U.minutoNum(res.minutoExtra);
+    el.dataset.minExtra = extra != null ? String(extra) : '';
+    el.dataset.periodo = res.periodo ?? '';
+    const srvAt = U.minutoAtServidor(res);
+    const prevBase = el.dataset.minBase || '';
+    if (minStr !== prevBase) {
+      el.dataset.minBase = minStr;
+      el.dataset.minAt = String(srvAt || Date.now());
+    } else {
+      el.dataset.minBase = minStr;
+      if (srvAt) el.dataset.minAt = String(srvAt);
+      else if (min != null && !el.dataset.minAt) el.dataset.minAt = String(Date.now());
+    }
+  }
+
+  function actualizarTickerInPlace(partidos) {
+    for (const p of partidos) {
+      const pill = document.querySelector(`[data-ticker-pid="${p.id}"]`);
+      if (!pill) continue;
+      const res = resultados[p.id];
+      const scoreEl = pill.querySelector('.ticker-pill__score');
+      if (scoreEl) scoreEl.textContent = `${res?.gl ?? 0} – ${res?.gv ?? 0}`;
+      const timeEl = pill.querySelector('[data-min-base]');
+      if (timeEl && res) syncRelojDataset(timeEl, res);
+    }
+  }
+
+  function pintarTicker(forceRebuild = false) {
+    const el = document.getElementById('match-ticker');
+    if (!el) return;
+    const hoyLocal = U.fechaColombia();
+    const manana = U.fechaColombia(new Date(Date.now() + 86400000));
+    const partidos = partidosTicker();
+
+    if (!partidos.length) {
+      el.classList.add('oculto');
+      tickerStructFp = '';
+      return;
+    }
+
+    const structFp = partidos.map(p => {
+      const est = U.estadoPartido(p, resultados[p.id]);
+      return `${p.id}:${est}`;
+    }).join('|');
+
+    if (!forceRebuild && structFp === tickerStructFp && el.querySelector('.ticker-pill')) {
+      actualizarTickerInPlace(partidos);
+      el.classList.remove('oculto');
+      return;
+    }
+    tickerStructFp = structFp;
+
+    const livePills = [];
+    const upcomingPills = [];
+    let ultimoDia = '';
+
+    for (const p of partidos) {
+      const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+      const res = resultados[p.id];
+      const est = U.estadoPartido(p, res);
+      const dia = U.fechaColombia(new Date(p.utc));
+      let sep = '';
+      if (dia !== ultimoDia) {
+        ultimoDia = dia;
+        const label = dia === hoyLocal ? 'Hoy' : dia === manana ? 'Mañana' : U.diaLocal(p.utc);
+        sep = `<span class="match-ticker__sep">${U.esc(label)}</span>`;
+      }
+
+      if (est === 'en_juego' || est === 'iniciando') {
+        const minCaja = res ? `${U.formatMinutoCaja(res)}′` : 'VIVO';
+        livePills.push(`${sep}<button class="ticker-pill ticker-pill--live" data-ticker-pid="${p.id}" type="button">
+          <span class="ticker-pill__time"
+            data-min-base="${res?.minuto ?? ''}"
+            data-min-extra="${res?.minutoExtra ?? ''}"
+            data-min-at="${U.minutoAtEfectivo(res) ?? ''}"
+            data-periodo="${res?.periodo ?? ''}">${U.esc(minCaja)}</span>
+          <span class="ticker-pill__flag">${L.b}</span>
+          <span class="ticker-pill__score">${res?.gl ?? 0} – ${res?.gv ?? 0}</span>
+          <span class="ticker-pill__flag">${V.b}</span>
+        </button>`);
+      } else {
+        const hora = p.horaOk ? U.horaLocal(p.utc).replace(' ', '') : 'TBD';
+        upcomingPills.push(`${sep}<button class="ticker-pill" data-ticker-pid="${p.id}" type="button">
+          <span class="ticker-pill__time">${U.esc(hora)}</span>
+          <span class="ticker-pill__flag">${L.b}</span>
+          <span class="ticker-pill__flag">${V.b}</span>
+        </button>`);
+      }
+    }
+
+    const liveHtml = livePills.length
+      ? `<div class="match-ticker__live">${livePills.join('')}</div>` : '';
+    const scrollContent = upcomingPills.join('');
+    const scrollHtml = scrollContent
+      ? `<div class="match-ticker__scroll-wrap">
+          <div class="match-ticker__scroll" style="--ticker-duration:${Math.max(30, upcomingPills.length * 8)}s">
+            ${scrollContent}${scrollContent}
+          </div>
+        </div>` : '';
+
+    el.innerHTML = `<span class="match-ticker__icon">🏆</span>${liveHtml}${scrollHtml}`;
+    el.classList.remove('oculto');
+  }
+
+  function capturarBorradoresPredDom() {
+    document.querySelectorAll('#lista-partidos .partido[id^="p-"]').forEach(card => {
+      const pid = card.id.replace(/^p-/, '');
+      const inL = card.querySelector('[data-in="l"]');
+      const inV = card.querySelector('[data-in="v"]');
+      if (!inL || !inV) return;
+      if (!borradoresPred[pid]) borradoresPred[pid] = {};
+      borradoresPred[pid].l = inL.value;
+      borradoresPred[pid].v = inV.value;
+    });
+  }
+
+  function restaurarFocoPred() {
+    if (!focoPredGuardado) return;
+    const { pid, campo, start, end } = focoPredGuardado;
+    const el = document.querySelector(`#p-${pid} [data-in="${campo}"]`);
+    if (el) {
+      el.focus();
+      if (typeof el.setSelectionRange === 'function' && start != null) {
+        try { el.setSelectionRange(start, end); } catch (_) {}
+      }
+    }
+    focoPredGuardado = null;
+  }
+
+  function actualizarMarcadoresEnDom() {
+    const porId = new Map(partidosEf().map(x => [x.id, x]));
+    document.querySelectorAll('#lista-partidos .partido[id^="p-"]').forEach(card => {
+      const pid = card.id.replace(/^p-/, '');
+      const p = porId.get(pid);
+      if (!p) return;
+      const res = resultados[pid];
+      const est = U.estadoPartido(p, res);
+      const marcador = card.querySelector('.marcador--vivo, .marcador--fin');
+      if (marcador && res && (est === 'en_juego' || est === 'finalizado')) {
+        const txt = `${res.gl} – ${res.gv}`;
+        if (marcador.textContent.trim() !== txt) marcador.textContent = txt;
+      }
+      card.querySelectorAll('[data-min-base]').forEach(el => {
+        if (!res) return;
+        syncRelojDataset(el, res);
+        const { min: minInterp, sec: secInterp } = U.calcMinutoInterp(res);
+        if (U.esDescanso(res)) {
+          if (el.classList.contains('vivo-reloj')) el.textContent = res.periodo === 'BT' ? 'Pausa ET' : 'Descanso';
+          else if (el.classList.contains('etiqueta--vivo')) el.textContent = `● ${U.formatMinutoCaja(res)}′`;
+          else if (el.classList.contains('ticker-pill__time')) el.textContent = U.formatMinutoCaja(res);
+        } else if (el.classList.contains('vivo-reloj')) {
+          el.textContent = U.formatMinutoLive(res, minInterp, secInterp);
+        } else if (el.classList.contains('etiqueta--vivo')) {
+          el.textContent = `● ${U.formatMinutoCaja(res, minInterp)}′`;
+        } else if (el.classList.contains('ticker-pill__time')) {
+          el.textContent = U.formatMinutoCaja(res, minInterp);
+        }
+      });
+
+      if (est === 'finalizado') {
+        const pred = misPred[p.id];
+        const ptsEl = card.querySelector('.puntos-ganados');
+        if (pred && ptsEl) {
+          const cal = Puntos.calificar(pred, res, p.fase, p);
+          const txt = `${cal.pts > 0 ? '+' + cal.pts + ' pts' : '0 pts'} ${cal.tipo === 'exacto' ? '🎯 ¡Exacto!' : cal.tipo === 'resultado' ? '✔ Resultado' : ''}`.trim();
+          if (ptsEl.textContent.trim() !== txt) ptsEl.textContent = txt;
+        }
+      }
+    });
+  }
+
+  function fpVistaEstructural() {
+    const lista = U.dedupePartidos(filtrar(partidosEf()), { misPred, predsByPartido, resultados });
+    return lista.map(p => {
+      const r = resultados[p.id];
+      const est = U.estadoPartido(p, r);
+      return `${p.id}:${est}:${r?.gl ?? ''}:${r?.gv ?? ''}:${(r?.eventos || []).length}:${r?.penales?.gl ?? ''}:${r?.penales?.gv ?? ''}:${(r?.penalesTanda || []).length}:${r?.periodo ?? ''}:${misPred[p.id]?.gl ?? ''}:${misPred[p.id]?.gv ?? ''}:${filtro}:${filtroGrupo}`;
+    }).join('|');
+  }
+
+  function actualizarPronosticosEnDom() {
+    const porId = new Map(partidosEf().map(x => [x.id, x]));
+    document.querySelectorAll('#lista-partidos .partido[id^="p-"]').forEach(card => {
+      const pid = card.id.replace(/^p-/, '');
+      const p = porId.get(pid);
+      if (!p) return;
+      const res = resultados[pid];
+      const est = U.estadoPartido(p, res);
+
+      const acc = card.querySelector('.partido-acciones');
+      if (acc) {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = renderPartidoAcciones(p, res);
+        const nuevo = wrap.firstElementChild;
+        if (nuevo) acc.replaceWith(nuevo);
+      }
+
+      const bannerHtml = renderPronosticosBanner(p, res);
+      const viejo = card.querySelector('.pronos-banner');
+      if (bannerHtml) {
+        const wrap = document.createElement('div');
+        wrap.innerHTML = bannerHtml;
+        const nuevo = wrap.firstElementChild;
+        if (nuevo) {
+          if (viejo) viejo.replaceWith(nuevo);
+          else {
+            const ref = card.querySelector('.vivo-encabezado, .partido__centro, .marcador--fin, .partido__meta');
+            if (ref?.nextSibling) card.insertBefore(nuevo, ref.nextSibling);
+            else card.prepend(nuevo);
+          }
+        }
+      } else if (viejo) viejo.remove();
+
+      if (est === 'en_juego' && misPred[pid]) {
+        const txt = `Tu pronóstico: ${misPred[pid].gl}–${misPred[pid].gv}`;
+        let badge = card.querySelector('.pred-badge-live');
+        if (badge) {
+          if (badge.textContent.trim() !== txt) badge.innerHTML = `Tu pronóstico: <strong>${misPred[pid].gl}–${misPred[pid].gv}</strong>`;
+        }
+      }
+    });
+  }
+
+  async function obtenerPredsPartido(pid) {
+    if (predsByPartido[pid]?.length) return predsByPartido[pid];
+    const prons = await Store.prediccionesPartido(pid);
+    predsByPartido[pid] = prons;
+    return prons;
+  }
+
+  async function cargarPredsPartidosVivos() {
+    const vivos = partidosEf().filter(p => {
+      if (!p.local || p.local === 'Por definir') return false;
+      return U.estadoPartido(p, resultados[p.id]) === 'en_juego';
+    });
+    for (let i = 0; i < Math.min(vivos.length, 6); i++) {
+      const p = vivos[i];
+      if (predsByPartido[p.id]?.length) continue;
+      try {
+        predsByPartido[p.id] = await Store.prediccionesPartido(p.id);
+      } catch (_) {}
+      if (i % 2 === 1) await cederUi();
+    }
+    if (vivos.length) actualizarPronosticosEnDom();
+  }
+
+  function verificarNotificacionesMarcador() {
+    const partidosConAj = FIXTURE.partidos.map(p => Puntos.conAjustes(p, ajustes));
+    const cambios = Notifica.detectarCambios(resultados, yo, partidosConAj, misPred);
+    if (cambios.goles.length || cambios.rojas.length || cambios.finalizados.length || cambios.abiertos.length) {
+      Notifica.notificarCambios(cambios, yo, misPred);
+    }
+    Notifica.limpiarEstado(resultados);
+  }
+
+  function aplicarResultadosLive(res) {
+    if (!res || typeof res !== 'object') return;
+    resultados = res;
+    window._resultadosLive = res;
+    if (!resultadosListos) return;
+    actualizarMarcadoresEnDom();
+    pintarTicker(false);
+    pintarProximoCierre(false);
+    pintarBannerAlertas();
+    clearTimeout(debounceNotif);
+    debounceNotif = setTimeout(verificarNotificacionesMarcador, 2000);
+  }
+
+  function repintarPartidosSiCambio(force = false) {
+    const fp = fpVistaEstructural();
+    if (force || fp !== lastFpVista || !document.getElementById('lista-partidos')?.children.length) {
+      lastFpVista = fp;
+      pintarPartidos();
+      return;
+    }
+    actualizarMarcadoresEnDom();
+    pintarTicker(false);
+    pintarBannerAlertas();
+    if (!document.getElementById('tab-cuadro')?.classList.contains('oculto')) pintarCuadro();
+  }
+
+  async function rebuildPredsByPartido(todas, aj, mp) {
+    const partidosLive = FIXTURE.partidos.map(p => Puntos.conAjustes(p, aj));
+    const mapaCanon = U.mapaPartidosCanonicos(partidosLive.filter(p => p.local && p.visitante), { misPred: mp });
+    aliasPartidos = mapaCanon.alias;
+    misPred = U.normalizarPrediccionesUsuario(mp, aliasPartidos);
+    predsByPartido = {};
+    const mapas = Object.values(todas || {});
+    for (let i = 0; i < mapas.length; i++) {
+      Object.values(mapas[i] || {}).forEach(pr => {
+        const pidCanon = aliasPartidos[pr.pid] || pr.pid;
+        predsByPartido[pidCanon] = predsByPartido[pidCanon] || [];
+        const idx = predsByPartido[pidCanon].findIndex(x => x.uid === pr.uid);
+        const merged = { ...pr, pid: pidCanon };
+        if (idx < 0) predsByPartido[pidCanon].push(merged);
+        else if ((pr.t || 0) >= (predsByPartido[pidCanon][idx].t || 0)) predsByPartido[pidCanon][idx] = merged;
+      });
+      if (esMovil && i > 0 && i % 12 === 0) await cederUi();
+    }
+  }
+
+  function pintarPartidos() {
+    capturarBorradoresPredDom();
+    const ae = document.activeElement;
+    const cardActiva = ae?.closest('#lista-partidos .partido[id^="p-"]');
+    if (cardActiva && ae.dataset?.in) {
+      focoPredGuardado = {
+        pid: cardActiva.id.replace(/^p-/, ''),
+        campo: ae.dataset.in,
+        start: ae.selectionStart,
+        end: ae.selectionEnd
+      };
+    } else {
+      focoPredGuardado = null;
+    }
+
+    const prioridad = p => {
+      const est = U.estadoPartido(p, resultados[p.id]);
+      return est === 'en_juego' ? 0 : est === 'finalizado' ? 2 : 1;
+    };
+    const cont = document.getElementById('lista-partidos');
+
+    const lista = U.dedupePartidos(filtrar(partidosEf()), { misPred, predsByPartido, resultados });
+    lista.sort((a, b) => {
+      const pa = prioridad(a), pb = prioridad(b);
+      if (pa !== pb) return pa - pb;
+      return (a.utc || a.fecha + 'T23').localeCompare(b.utc || b.fecha + 'T23');
+    });
+    if (!lista.length) {
+      cont.innerHTML = `<div class="aviso">No hay partidos con este filtro. Prueba con otro 👆</div>`;
+      return;
+    }
+    let html = '', diaActual = '', grupoActual = -1;
+    let bufferDia = [], bufferFin = [];
+
+    const flushDia = () => {
+      if (!bufferDia.length) return;
+      const gridCls = bufferDia.length >= 2 ? 'partidos-grid' : '';
+      html += `<div class="${gridCls}">${bufferDia.map(p => cardPartido(p)).join('')}</div>`;
+      bufferDia = [];
+    };
+
+    const flushFin = () => {
+      if (!bufferFin.length) return;
+      html += `<details class="fin-colapsable">
+        <summary class="fin-colapsable__sum">🏁 ${bufferFin.length} partido${bufferFin.length !== 1 ? 's' : ''} finalizado${bufferFin.length !== 1 ? 's' : ''} — toca para ver resumen, goles y pronósticos</summary>
+        <div class="fin-colapsable__lista">${bufferFin.map(p => cardPartido(p)).join('')}</div>
+      </details>`;
+      bufferFin = [];
+    };
+
+    for (const p of lista) {
+      const g = prioridad(p);
+      if (g !== grupoActual) {
+        flushDia();
+        flushFin();
+        grupoActual = g;
+        diaActual = '';
+      }
+      if (U.diaPartido(p) !== diaActual && g !== 2) {
+        flushDia();
+        diaActual = U.diaPartido(p);
+        const mananaLocal = U.fechaColombia(new Date(Date.now() + 86400000));
+        const esManana = diaActual === mananaLocal;
+        const titulo = esManana ? `🌅 Mañana · ${U.fechaLarga(diaActual)}` : U.fechaLarga(diaActual);
+        html += `<h3 class="dia-titulo${esManana ? ' dia-titulo--manana' : ''}">${titulo}</h3>`;
+      }
+      if (g === 2) {
+        bufferFin.push(p);
+      } else {
+        bufferDia.push(p);
+      }
+    }
+    flushDia();
+    flushFin();
+    cont.innerHTML = html;
+    window.TemaColombia?.marcarPartidosColombia?.();
+    pintarTicker();
+    pintarBannerAlertas();
+    restaurarFocoPred();
+    lastFpVista = fpVistaEstructural();
+  }
+
+  function pintarBannerAlertas() {
+    const el = document.getElementById('banner-alertas');
+    if (!el) return;
+    const partidos = partidosEf();
+    const pendientes = partidos.filter(p => partidoAbierto(p) && !tienePredPartido(p));
+    const enVivo = partidos.filter(p => U.estadoPartido(p, resultados[p.id]) === 'en_juego');
+    const hist = !esMovil && partidos.find(p => p.local && Puntos.historialComunidad(p, predsByPartido, resultados));
+    const histData = hist ? Puntos.historialComunidad(hist, predsByPartido, resultados) : null;
+
+    const items = [];
+    (window._avisosAdmin || []).forEach(a => {
+      items.push(`<span class="banner-alertas__item ${a.tipo === 'aprobado' ? 'banner-alertas__item--live' : 'banner-alertas__item--warn'}" title="${U.esc(a.texto)}"><b>${U.esc(a.titulo || 'Aviso del admin')}</b> — ${U.esc(a.texto)}</span>`);
+    });
+    if (pendientes.length) {
+      items.push(`<span class="banner-alertas__item banner-alertas__item--warn">⏰ <b>${pendientes.length}</b> pronóstico${pendientes.length !== 1 ? 's' : ''} pendiente${pendientes.length !== 1 ? 's' : ''}</span>`);
+    }
+    if (enVivo.length) {
+      items.push(`<span class="banner-alertas__item banner-alertas__item--live">● <b>${enVivo.length}</b> en vivo ahora</span>`);
+    }
+    if (histData) {
+      items.push(`<span class="banner-alertas__item">📊 Comunidad: ${histData.pct}% acertó en ${U.esc(histData.label)}</span>`);
+    }
+    if (Notification.permission !== 'granted') {
+      items.push(`<button class="banner-alertas__btn" id="btn-activar-notif" type="button">🔔 Activar notificaciones</button>`);
+    }
+
+    if (!items.length) {
+      el.classList.add('oculto');
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = `<div class="banner-alertas__fila">${items.join('')}</div>`;
+    el.classList.remove('oculto');
+    if ((window._avisosAdmin || []).length && typeof Store.marcarAvisosLeidos === 'function') {
+      Store.marcarAvisosLeidos(yo.uid).then(() => { window._avisosAdmin = []; }).catch(() => {});
+    }
+    document.getElementById('btn-activar-notif')?.addEventListener('click', () => {
+      Notification.requestPermission().then(() => pintarBannerAlertas());
+    });
+  }
+
+  let cacheUsuarios = null;
+
+  // Helper para renderizar un mensaje de chat
+  function renderMensajeChat(msg, yo) {
+    const esMio = msg.uid === yo.uid;
+    const fecha = msg.timestamp
+        ? (msg.timestamp.toDate ? new Date(msg.timestamp.toDate()) : new Date(msg.timestamp))
+            .toLocaleTimeString('es-CO', { hour: 'numeric', minute: '2-digit' })
+        : '';
+    
+    const reacciones = msg.reacciones || {};
+    const reaccionesHtml = Object.entries(reacciones)
+        .filter(([, uids]) => uids.length > 0)
+        .map(([emoji, uids]) => {
+            const reaccioneYo = uids.includes(yo.uid);
+            return `<button class="chat-reaccion ${reaccioneYo ? 'mia' : ''}" data-msg-id="${msg.id}" data-emoji="${emoji}" type="button" title="${uids.length} persona(s)">
+                        ${emoji} <span class="chat-reaccion-conteo">${uids.length}</span>
+                    </button>`;
+        }).join('');
+
+    const pickerHtml = `
+        <div class="chat-reaccion-picker">
+            ${['👍', '🔥', '❤️', '😂', '🎉', '😢'].map(emoji => 
+                `<button class="chat-picker-btn" data-msg-id="${msg.id}" data-emoji="${emoji}" type="button">${emoji}</button>`
+            ).join('')}
+        </div>
+    `;
+
+    return `
+        <div class="chat-msg ${esMio ? 'mio' : ''}" id="chat-msg-${msg.id}">
+            <div class="chat-msg-meta">
+                <span class="chat-msg-nombre">${esMio ? 'Tú' : U.esc(msg.nombre.split(' ')[0])}</span>
+                <span class="chat-msg-hora">${fecha}</span>
+            </div>
+            <div class="chat-msg-burbuja">${U.esc(msg.texto)}</div>
+            <div class="chat-reacciones-bar">
+                ${reaccionesHtml}
+                <div class="chat-reaccion-adder"><button class="chat-reaccion-add-btn" type="button" title="Añadir reacción">⊕</button>${pickerHtml}</div>
+            </div>
+        </div>`;
+  }
+
+  /* steppers + guardar (delegación de eventos) */
+  document.getElementById('lista-partidos').addEventListener('input', e => {
+    const inp = e.target;
+    if (!inp.matches('[data-in]')) return;
+    const card = inp.closest('.partido[id^="p-"]');
+    if (!card) return;
+    const pid = card.id.replace(/^p-/, '');
+    if (!borradoresPred[pid]) borradoresPred[pid] = {};
+    borradoresPred[pid][inp.dataset.in] = inp.value;
+  });
+
+  document.getElementById('lista-partidos').addEventListener('click', async e => {
+    /* Abrir modal de análisis */
+    if (e.target.closest('[data-abrir-analisis]')) {
+      abrirModalAnalisis(e.target.closest('[data-abrir-analisis]').dataset.abrirAnalisis);
+      return;
+    }
+
+    if (e.target.closest('[data-generar-ia]')) {
+      const btn = e.target.closest('[data-generar-ia]');
+      const pid = btn.dataset.generarIa;
+      const textoOriginal = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Analizando...';
+      try {
+        await ApiFutbol.generarAnalisisIA(pid);
+        U.toast('Análisis de IA generado correctamente.', 'ok');
+        await cargar(); // Recargar todo para mostrar el nuevo análisis
+      } catch (err) {
+        U.toast(U.msgError(err, 'No se pudo generar el análisis de IA. Intenta más tarde.'), 'error');
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+      }
+      return;
+    }
+
+    /* Estadísticas del partido (expandible) */
+    if (e.target.closest('[data-ver-stats]')) {
+      const btn = e.target.closest('[data-ver-stats]');
+      const pid = btn.dataset.verStats;
+      const div = document.getElementById(`stats-inline-${pid}`);
+      if (!div) return;
+      const visible = !div.classList.contains('oculto');
+      div.classList.toggle('oculto', visible);
+      btn.textContent = visible ? '📊 Estadísticas del partido' : '📊 Ocultar estadísticas';
+      return;
+    }
+
+    /* Ver resumen de partido finalizado */
+    if (e.target.closest('[data-ver-detalle]')) {
+      const pid = e.target.closest('[data-ver-detalle]').dataset.verDetalle;
+      const p = partidosEf().find(x => x.id === pid);
+      const res = resultados[pid];
+      if (!p || !res) return;
+      document.getElementById('modal-det-titulo').innerHTML =
+        `${FIXTURE.equipo(p.local).b} ${U.esc(FIXTURE.equipo(p.local).n)} vs ${U.esc(FIXTURE.equipo(p.visitante).n)} ${FIXTURE.equipo(p.visitante).b}`;
+      document.getElementById('modal-det-cuerpo').innerHTML = buildModalDetalle(p, res);
+      document.getElementById('modal-detalle').classList.add('activo');
+      // Confeti la primera vez que el usuario abre un exacto
+      const pred = misPred[pid];
+      const cal = pred ? Puntos.calificar(pred, res, p.fase) : null;
+      const confKey = `confetti_${yo.uid}_${pid}`;
+      if (cal?.tipo === 'exacto' && !localStorage.getItem(confKey) && typeof confetti === 'function') {
+        localStorage.setItem(confKey, '1');
+        setTimeout(() => confetti({ particleCount: 140, spread: 70, origin: { y: 0.6 } }), 350);
+      }
+      return;
+    }
+
+    /* Al hacer clic en "Ver pronósticos" */
+    if (e.target.closest('[data-ver-prons]')) {
+      const btn = e.target.closest('[data-ver-prons]');
+      try {
+        const pid = btn.dataset.verProns;
+        const p = partidosEf().find(x => x.id === pid);
+        
+        // Mostrar feedback de carga
+        const txtOriginal = btn.innerHTML;
+        btn.innerHTML = '⏳ Cargando...';
+      
+        if (!cacheUsuarios) cacheUsuarios = await Store.usuarios();
+        
+        btn.innerHTML = txtOriginal; // Restaurar texto del botón
+        
+        const prons = await obtenerPredsPartido(pid);
+      
+        const estaAbierto = partidoAbierto(p, resultados[pid]);
+        const revelados = puedeVerPronosticosAjeno(p, resultados[pid]);
+        const L = FIXTURE.equipo(p.local);
+        const V = FIXTURE.equipo(p.visitante);
+        document.getElementById('modal-pron-titulo').innerHTML = `${L.b} ${U.esc(L.n)} vs ${U.esc(V.n)} ${V.b}`;
+      
+        if (!prons.length) {
+          document.getElementById('modal-pron-lista').innerHTML = '<div class="aviso" style="margin: 16px;">Nadie ha pronosticado aún.</div>';
+        } else {
+          const pronsConNombre = prons.map(pr => {
+            const u = cacheUsuarios.find(x => x.uid === pr.uid) || { nombre: 'Anónimo' };
+            return { ...pr, nombre: u.nombre };
+          });
+
+          const html = pronsConNombre
+            .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+            .map(pr => {
+              const esYo = pr.uid === yo.uid;
+              const iniciales = U.iniciales(pr.nombre);
+              const ocultar = !revelados && !esYo;
+
+              let textoGoles = `${pr.gl} – ${pr.gv}`;
+              if (ocultar) textoGoles = `? – ?`;
+              const cajaGoles = `<div class="goles ${ocultar ? 'goles--oculto' : ''}">${textoGoles}</div>`;
+              const modTs = pr.t && !ocultar
+                ? `<span class="pron-mod-ts">${U.fechaActualizacion(pr.t)}</span>`
+                : (ocultar ? '<span class="pron-mod-ts">Oculto hasta el pitazo</span>' : '');
+
+              return `<div class="pron-item ${esYo ? 'yo' : ''}">
+                <div class="pron-item__info">
+                  <div class="avatar pron-avatar">${iniciales}</div>
+                  <div class="pron-item__texto">
+                    <div class="nombre">${U.esc(pr.nombre)}${esYo ? ' (Tú)' : ''}</div>
+                    ${modTs}
+                  </div>
+                </div>
+                ${cajaGoles}
+              </div>`;
+            }).join('');
+          document.getElementById('modal-pron-lista').innerHTML = html;
+        }
+      
+        document.getElementById('modal-pron').classList.add('activo');
+      } catch (err) {
+        if (btn.innerHTML === '⏳ Cargando...') btn.innerHTML = '👀 Ver pron.';
+        U.toast('Error al cargar la lista: ' + err.message, 'error');
+      }
+      return; /* Detener la ejecución para no afectar a los inputs de goles */
+    }
+
+    // --- Chat Reactions ---
+    const addBtn = e.target.closest('.chat-reaccion-add-btn');
+    if (addBtn) {
+        const adder = addBtn.closest('.chat-reaccion-adder');
+        // Cerrar otros selectores abiertos
+        document.querySelectorAll('.chat-reaccion-adder.activo').forEach(el => {
+            if (el !== adder) el.classList.remove('activo');
+        });
+        adder.classList.toggle('activo');
+        return;
+    }
+
+    const targetBtn = e.target.closest('.chat-reaccion, .chat-picker-btn');
+    if (targetBtn) {
+        const msgId = targetBtn.dataset.msgId;
+        const emoji = targetBtn.dataset.emoji;
+        const pid = targetBtn.closest('.partido')?.id.replace('p-', '');
+
+        if (!pid || !msgId || !emoji) return;
+
+        // Cerrar el selector si se eligió un emoji
+        if (targetBtn.classList.contains('chat-picker-btn')) {
+            targetBtn.closest('.chat-reaccion-adder')?.classList.remove('activo');
+        }
+
+        try {
+            targetBtn.disabled = true; // Prevenir doble clic
+            await Store.toggleReaccionChat(pid, msgId, emoji);
+        } catch (err) { U.toast('No se pudo guardar la reacción.', 'error'); }
+        return;
+    }
+
+    const card = e.target.closest('.partido'); if (!card) return;
+    const pid = card.id?.replace('p-', '');
+    if (!pid) return;
+    const inL = card.querySelector('[data-in="l"]'), inV = card.querySelector('[data-in="v"]');
+    if (!inL || !inV) return;
+    const st = e.target.closest('[data-st]');
+    if (st) {
+      const cual = st.dataset.st[0] === 'l' ? inL : inV;
+      let v = parseInt(cual.value, 10); if (isNaN(v)) v = 0;
+      v += st.dataset.st[1] === '+' ? 1 : -1;
+      cual.value = Math.max(0, Math.min(CONFIG.MAX_GOLES, v));
+      if (!borradoresPred[pid]) borradoresPred[pid] = {};
+      borradoresPred[pid][cual.dataset.in] = String(cual.value);
+      return;
+    }
+    if (e.target.closest('[data-guardar]')) {
+      const gl = parseInt(inL.value, 10), gv = parseInt(inV.value, 10);
+      if (isNaN(gl) || isNaN(gv)) { U.toast('Pon los dos marcadores 😉', 'error'); return; }
+      const p = partidosEf().find(x => x.id === pid);
+      if (!partidoAbierto(p, resultados[pid])) {
+        const kickoff = p && U.inicioPartidoMs(p);
+        if (kickoff && Date.now() >= kickoff) {
+          try { Store.registrarIntentoTrampa?.(yo.uid, yo.nombre, pid, gl, gv, 'intento_despues_del_pitazo'); } catch (_) {}
+          U.toast(U.mensajeTramposo(), 'error');
+        } else {
+          U.toast('Este partido ya cerró.', 'error');
+        }
+        pintarPartidos(); return;
+      }
+      const predAnterior = misPred[pid];
+      const fueraDeTiempo = U.fueraDeTiempo(p);
+      const glF = Math.min(CONFIG.MAX_GOLES, Math.max(0, gl));
+      const gvF = Math.min(CONFIG.MAX_GOLES, Math.max(0, gv));
+      try {
+        await Store.guardarPrediccion(yo.uid, pid, glF, gvF, {
+          aprobado: fueraDeTiempo ? null : true,
+          pendienteAprobacion: !!fueraDeTiempo
+        });
+        misPred[aliasPartidos[pid] || pid] = { uid: yo.uid, pid: aliasPartidos[pid] || pid, gl: glF, gv: gvF, t: Date.now(), aprobado: !fueraDeTiempo, fueraDeTiempo };
+        delete borradoresPred[pid];
+        U.toast(fueraDeTiempo ? `Guardado ${glF}–${gvF} — pendiente de aprobación del admin.` : `Guardado: ${glF}–${gvF} ⚽`);
+        pintarPartidos();
+        pintarProximoCierre(true);
+      } catch (err) { U.toast(U.msgError(err, 'No se pudo guardar. ¿El partido ya cerró?'), 'error'); return; }
+      try {
+        const teniaPrev = predAnterior && (predAnterior.gl != null || predAnterior.gv != null);
+        Store.registrarHistorial?.(yo.uid, yo.nombre, pid, glF, gvF, predAnterior?.gl ?? null, predAnterior?.gv ?? null, {
+          fueraDeTiempo,
+          accion: fueraDeTiempo ? 'tarde' : (teniaPrev ? 'editar' : 'crear')
+        });
+      } catch (_) {}
+    }
+  });
+
+  // Abrir y manejar chat global
+  document.getElementById('fab-chat').onclick = async () => {
+    const modal = document.getElementById('modal-chat');
+    modal.classList.add('activo');
+    const cont = document.getElementById('modal-chat-mensajes');
+    cont.innerHTML = '<div class="aviso" style="padding: 20px; text-align:center;">Cargando chat...</div>';
+
+    if (chatSubscription) chatSubscription(); // Cancelar suscripción anterior si existe
+
+    chatSubscription = await Store.escucharChat('global', (changes, isInitial) => {
+        let shouldScroll = (cont.scrollTop + cont.clientHeight) >= (cont.scrollHeight - 50);
+        if (isInitial) cont.innerHTML = '';
+
+        changes.forEach(change => {
+            const msg = change.doc;
+            const msgElId = `chat-msg-${msg.id}`;
+            if (change.type === 'added') {
+                if (document.getElementById(msgElId)) return;
+                cont.insertAdjacentHTML('beforeend', renderMensajeChat(msg, yo));
+            } else if (change.type === 'modified') {
+                const existingEl = document.getElementById(msgElId);
+                if (existingEl) existingEl.outerHTML = renderMensajeChat(msg, yo);
+            } else if (change.type === 'removed') {
+                const elToRemove = document.getElementById(msgElId);
+                if (elToRemove) elToRemove.remove();
+            }
+        });
+        if (cont.children.length === 0) cont.innerHTML = '<div class="aviso" style="padding: 20px; text-align:center;">¡Sé el primero en chatear!</div>';
+        if (shouldScroll || isInitial) cont.scrollTop = cont.scrollHeight;
+    });
+  };
+
+  // Enviar mensaje de chat
+  document.getElementById('modal-chat-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const input = form.querySelector('input');
+      const texto = input.value.trim();
+      if (!texto) return;
+
+      const mensaje = { uid: yo.uid, nombre: yo.nombre, texto: texto };
+      try {
+          input.disabled = true;
+          await Store.enviarMensajeChat('global', mensaje);
+          input.value = '';
+      } catch (err) { U.toast('Error al enviar el mensaje.', 'error'); }
+      finally { input.disabled = false; input.focus(); }
+  });
+
+  /* Cerrar modal de chat */
+  const closeChatModal = () => {
+    document.getElementById('modal-chat').classList.remove('activo');
+    if (chatSubscription) {
+      chatSubscription();
+      chatSubscription = null;
+    }
+  };
+  document.getElementById('modal-chat-cerrar').onclick = closeChatModal;
+  document.getElementById('modal-chat').onclick = e => { if (e.target.id === 'modal-chat') closeChatModal(); };
+
+  // Cerrar selector de reacciones si se hace clic fuera
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.chat-reaccion-adder')) {
+        document.querySelectorAll('.chat-reaccion-adder.activo').forEach(el => el.classList.remove('activo'));
+    }
+  });
+
+  /* Pestañas del modal de análisis */
+  document.getElementById('modal-analisis').addEventListener('click', e => {
+    const tabBtn = e.target.closest('[data-mtab]');
+    if (tabBtn) {
+      const pid = tabBtn.dataset.pid;
+      const tab = tabBtn.dataset.mtab;
+      tabsActivos.set(pid, tab);
+      const modal = document.getElementById('modal-analisis');
+      modal.querySelectorAll('.match-pro-tab').forEach(b => b.classList.toggle('activo', b === tabBtn));
+      modal.querySelectorAll('.modal-analisis__pane').forEach(pane => pane.classList.toggle('activo', pane.dataset.mpane === tab));
+      requestAnimationFrame(() => posicionarIndicadorTab(pid));
+      return;
+    }
+    if (e.target.closest('[data-generar-ia]')) {
+      const btn = e.target.closest('[data-generar-ia]');
+      const pid = btn.dataset.generarIa;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Analizando...';
+      ApiFutbol.generarAnalisisIA(pid)
+        .then(() => { U.toast('Análisis de IA generado.', 'ok'); return cargar(); })
+        .catch(err => { U.toast(U.msgError(err, 'No se pudo generar el análisis de IA. Intenta más tarde.'), 'error'); btn.disabled = false; btn.innerHTML = '🤖 Generar análisis IA'; });
+    }
+  });
+  document.getElementById('modal-analisis-cerrar').onclick = () => document.getElementById('modal-analisis').classList.remove('activo');
+  document.getElementById('modal-analisis').onclick = e => { if (e.target.id === 'modal-analisis') document.getElementById('modal-analisis').classList.remove('activo'); };
+
+  /* Ticker: scroll al partido */
+  document.getElementById('match-ticker')?.addEventListener('click', e => {
+    const btn = e.target.closest('[data-ticker-pid]');
+    if (!btn) return;
+    const pid = btn.dataset.tickerPid;
+    const card = document.getElementById(`p-${pid}`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('partido--highlight');
+      setTimeout(() => card.classList.remove('partido--highlight'), 2000);
+    }
+  });
+
+  /* Cerrar modal de pronósticos */
+  document.getElementById('modal-pron-cerrar').onclick = () => { document.getElementById('modal-pron').classList.remove('activo'); };
+  document.getElementById('modal-pron').onclick = e => { if (e.target.id === 'modal-pron') document.getElementById('modal-pron').classList.remove('activo'); };
+
+  /* Cerrar modal de detalle de partido */
+  document.getElementById('modal-det-cerrar').onclick = () => { document.getElementById('modal-detalle').classList.remove('activo'); };
+  document.getElementById('modal-detalle').onclick = e => { if (e.target.id === 'modal-detalle') document.getElementById('modal-detalle').classList.remove('activo'); };
+
+  /* --- GRUPOS DEL MUNDIAL ---------------------------------------- */
+  function pintarGrupos() {
+    const tablas = Puntos.gruposMundial(resultados);
+
+    // Mejores terceros: los 8 con más puntos clasifican a dieciseisavos
+    const terceros = Object.entries(tablas)
+      .map(([g, filas]) => filas[2] ? { ...filas[2], grupo: g } : null)
+      .filter(Boolean)
+      .sort((a, b) => b.pts - a.pts || b.dg - a.dg || b.gf - a.gf);
+    const mejoresTerceros = new Set(terceros.slice(0, 8).map(t => `${t.grupo}-${t.code}`));
+
+    document.getElementById('lista-grupos').innerHTML = `
+      <div style="margin: 18px 0 8px;">
+        <h2 style="margin:0 0 4px;">📊 Grupos del Mundial 2026</h2>
+        <p class="sub" style="margin:0;">Posiciones calculadas con los resultados registrados en la Polla.</p>
+        <div class="grupos-leyenda">
+          <span><span class="badge-avanza">✓</span> Clasifica (Top 2)</span>
+          <span><span class="badge-3ro">3</span> Posible mejor 3.er lugar</span>
+          <span style="font-size:11px;">Los mejores 8 terceros también clasifican · 32 equipos en Dieciseisavos</span>
+        </div>
+      </div>
+      <div class="grupos-grid">
+        ${Object.entries(tablas).map(([g, filas]) => {
+          const grpPartidos  = FIXTURE.partidos.filter(p => p.fase === 'grupos' && p.grupo === g);
+          const totalJugados = grpPartidos.filter(p => (resultados[p.id] || {}).estado === 'finalizado').length;
+          const totalPartidos = grpPartidos.length;
+          return `<div class="panel grupo-card">
+            <div class="grupo-header">
+              <h3>GRUPO ${g}</h3>
+              <span style="font-size:10.5px;color:var(--tinta-3);">${totalJugados}/${totalPartidos} partidos</span>
+            </div>
+            <table class="grupo-tabla">
+              <thead><tr>
+                <th style="text-align:left">Equipo</th>
+                <th>PJ</th><th>G</th><th>E</th><th>P</th>
+                <th>GF</th><th>GC</th><th>DG</th><th>PTS</th>
+              </tr></thead>
+              <tbody>
+                ${filas.map((f, i) => {
+                  const eq = FIXTURE.equipo(f.code);
+                  const esTop2    = i < 2;
+                  const esMejor3  = i === 2 && mejoresTerceros.has(`${g}-${f.code}`);
+                  const badge     = esTop2
+                    ? `<span class="badge-avanza">✓</span>`
+                    : esMejor3 ? `<span class="badge-3ro">3</span>` : '';
+                  const dgStr = f.dg > 0 ? `+${f.dg}` : String(f.dg);
+                  const dgCls = f.dg > 0 ? 'dg-pos' : f.dg < 0 ? 'dg-neg' : '';
+                  return `<tr class="${esTop2 ? 'clasifica' : esMejor3 ? 'posible-3ro' : ''}">
+                    <td><div class="td-equipo">${eq.b}<span class="td-nombre">${U.esc(eq.n)}</span>${badge}</div></td>
+                    <td>${f.pj}</td><td>${f.pg}</td><td>${f.pe}</td><td>${f.pp}</td>
+                    <td>${f.gf}</td><td>${f.gc}</td>
+                    <td class="${dgCls}" style="font-family:var(--fuente-marcador);font-size:12px;">${dgStr}</td>
+                    <td style="font-family:var(--fuente-marcador);font-weight:700;color:var(--dorado);">${f.pts}</td>
+                  </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  /* --- MI CAMPEÓN -------------------------------------------------- */
+  function pintarCampeon() {
+    const globalAbierto = ajustes.GLOBAL ? ajustes.GLOBAL.campeonAbierto : null;
+    const abierto = globalAbierto !== null ? globalAbierto : (new Date(CONFIG.REGLAS.cierreCampeonUTC) > new Date());
+    
+    const estado = document.getElementById('campeon-estado');
+    const aviso = document.getElementById('campeon-aviso');
+    estado.innerHTML = abierto
+      ? `Vale <b style="color:var(--dorado)">${CONFIG.REGLAS.bonusCampeon} puntos</b> si aciertas. ¡Elige a tu favorito antes de que se cierre!`
+      : `La elección de campeón está actualmente <b>cerrada</b>.`;
+    aviso.innerHTML = yo.campeon
+      ? `<div class="aviso aviso--verde">Tu campeón: <b>${FIXTURE.equipo(yo.campeon).b} ${U.esc(FIXTURE.equipo(yo.campeon).n)}</b> ${abierto ? '— toca otra bandera si quieres cambiarlo.' : ''}</div>`
+      : (abierto ? `<div class="aviso aviso--dorado">Aún no has elegido campeón. ¡No dejes los 10 puntos sobre la mesa!</div>`
+                 : `<div class="aviso">No elegiste campeón esta vez.</div>`);
+    document.getElementById('lista-campeones').innerHTML = Object.keys(FIXTURE.equipos).sort((a, b) =>
+      FIXTURE.equipo(a).n.localeCompare(FIXTURE.equipo(b).n, 'es')).map(c => {
+      const eq = FIXTURE.equipo(c);
+      return `<button class="campeon-op ${yo.campeon === c ? 'elegido' : ''}" data-eq="${c}" ${abierto ? '' : 'disabled'} type="button">
+        <span class="bandera">${eq.b}</span> ${U.esc(eq.n)}</button>`;
+    }).join('');
+  }
+  document.getElementById('lista-campeones').addEventListener('click', async e => {
+    const b = e.target.closest('[data-eq]'); if (!b || b.disabled) return;
+    
+    const globalAbierto = ajustes.GLOBAL ? ajustes.GLOBAL.campeonAbierto : null;
+    const abierto = globalAbierto !== null ? globalAbierto : (new Date(CONFIG.REGLAS.cierreCampeonUTC) > new Date());
+    if (!abierto) { U.toast('La elección de campeón ya cerró.', 'error'); return; }
+    
+    try {
+      await Store.actualizarUsuario(yo.uid, { campeon: b.dataset.eq });
+      yo.campeon = b.dataset.eq;
+      U.toast(`Campeón elegido: ${FIXTURE.equipo(yo.campeon).n} 🏆`);
+      pintarCampeon();
+    } catch (err) { U.toast(err.message, 'error'); }
+  });
+
+  /* --- NOTIFICACIONES EN VIVO -------------------------------------- */
+  // Inicializar sistema de notificaciones
+  Notifica.iniciar();
+
+  // Detectar cambios después de cada carga y notificar
+  let primeraCarga = true;
+
+  async function cargarPrediccionesComunidad(aj, mp) {
+    const gen = ++cargarPredsGen;
+    try {
+      /* Emergencia rendimiento: no descargar todos los pronósticos desde cada
+         navegador. Los pronósticos comunitarios completos vuelven desde admin
+         o en una versión paginada; en vivo se carga solo el partido activo. */
+      if (true) return;
+      const todas = await Store.todasPredicciones();
+      if (gen !== cargarPredsGen) return;
+      await cederUi();
+      await rebuildPredsByPartido(todas, aj, mp);
+      if (gen !== cargarPredsGen) return;
+      await cederUi();
+      if (esMovil) {
+        actualizarPronosticosEnDom();
+        pintarTicker(false);
+      } else {
+        repintarPartidosSiCambio(true);
+      }
+    } catch (err) {
+      console.warn('Predicciones comunidad:', err);
+    }
+  }
+
+  async function cargar(opts = {}) {
+    const gen = ++cargarGen;
+    const cargarComunidad = opts.comunidad === true;
+
+    /* Fase 1: marcadores + calendario → pitazo y reloj de inmediato */
+    const [res, aj] = await Promise.all([Store.resultados(), Store.ajustes()]);
+    if (gen !== cargarGen) return;
+
+    resultados = res;
+    ajustes = aj;
+    window._ajustesLive = aj;
+    window._resultadosLive = res;
+    pintarProximoCierre(true);
+    pintarTicker(!listoPrimeraVista);
+
+    /* Fase 2: tus pronósticos → tarjetas de partido */
+    const mp = await Store.predicciones(yo.uid);
+    if (gen !== cargarGen) return;
+
+    if (!primeraCarga) {
+      verificarNotificacionesMarcador();
+    } else {
+      Notifica.limpiarEstado(res);
+      primeraCarga = false;
+    }
+
+    const partidosLive = FIXTURE.partidos.map(p => Puntos.conAjustes(p, aj));
+    const mapaCanon = U.mapaPartidosCanonicos(
+      partidosLive.filter(p => p.local && p.visitante),
+      { misPred: mp }
+    );
+    aliasPartidos = mapaCanon.alias;
+    misPred = U.normalizarPrediccionesUsuario(mp, aliasPartidos);
+    pintarProximoCierre(true);
+
+    if (gen !== cargarGen) return;
+
+    const ahora = Date.now();
+    if (ahora - ultimoCierreCheck > 120000) {
+      ultimoCierreCheck = ahora;
+      Store.cerrarPartidosVencidos?.(partidosLive, res).catch(() => {});
+    }
+    if (!filtroInicialAplicado) {
+      filtroInicialAplicado = true;
+      const hoyLocal = U.fechaColombia();
+      const mananaLocal = U.fechaColombia(new Date(Date.now() + 86400000));
+      const hayPartidosCercanos = partidosLive.some(p => {
+        if (!p.local || p.local === 'Por definir') return false;
+        const est = U.estadoPartido(p, res[p.id]);
+        return U.esPartidoCercano(p, hoyLocal, mananaLocal, res)
+          || est === 'en_juego' || est === 'iniciando';
+      });
+      if (hayPartidosCercanos) {
+        filtro = 'hoy';
+        document.querySelectorAll('.chip[data-f]').forEach(c => c.classList.toggle('activo', c.dataset.f === 'hoy'));
+      }
+    }
+
+    repintarPartidosSiCambio(!listoPrimeraVista);
+    if (!listoPrimeraVista) listoPrimeraVista = true;
+    resultadosListos = true;
+
+    /* Fase 3: lo pesado en segundo plano (PC y móvil) */
+    setTimeout(() => { resumenYoTs = 0; pintarResumenYo(); }, 0);
+
+    if (cargarComunidad) {
+      cargarPrediccionesComunidad(aj, mp).catch(() => {});
+    } else {
+      const runVivos = () => cargarPredsPartidosVivos().catch(() => {});
+      if ('requestIdleCallback' in window) requestIdleCallback(runVivos, { timeout: 12000 });
+      else setTimeout(runVivos, 4000);
+    }
+
+    if (typeof Store.avisosUsuario === 'function') {
+      Store.avisosUsuario(yo.uid).then(a => {
+        window._avisosAdmin = a;
+        pintarBannerAlertas();
+      }).catch(() => { window._avisosAdmin = []; });
+    } else {
+      window._avisosAdmin = [];
+    }
+
+    if (!document.getElementById('tab-cuadro')?.classList.contains('oculto')) pintarCuadro();
+    if (!document.getElementById('tab-grupos')?.classList.contains('oculto')) {
+      pintarGrupos();
+      if (window.GruposApi) GruposApi.cargarWidgets(res);
+    }
+  }
+
+  // Iniciar recordatorios de pronósticos pendientes
+  Notifica.iniciarRecordatorios(yo, partidosEf, () => window._resultadosLive || resultados, () => misPred);
+
+  setInterval(tickProximoCierre, 1000);
+
+  /* Reloj en vivo: minuto en badge/ticker; min:seg bajo el marcador */
+  setInterval(() => {
+    document.querySelectorAll('#lista-partidos [data-min-base], #match-ticker [data-min-base]').forEach(el => {
+      const res = {
+        minuto: el.dataset.minBase,
+        minutoExtra: el.dataset.minExtra,
+        periodo: el.dataset.periodo,
+        minutoAt: el.dataset.minAt,
+        t: el.dataset.minAt
+      };
+      const per = U.periodoNorm(res.periodo, res.minuto);
+
+      if (U.esDescanso(res) || ['HT', 'BT', 'P'].includes(per)) {
+        const txtReloj = U.formatMinutoLive(res);
+        const txtBadge = `${U.formatMinutoCaja(res)}′`;
+        if (el.classList.contains('vivo-reloj') && el.textContent !== txtReloj) el.textContent = txtReloj;
+        else if (el.classList.contains('ticker-pill__time') && el.textContent !== txtBadge) el.textContent = txtBadge;
+        else if (el.classList.contains('etiqueta--vivo')) {
+          const display = `● ${txtBadge}`;
+          if (el.textContent !== display) el.textContent = display;
+        }
+        return;
+      }
+
+      const { min: minInterp, sec: secInterp } = U.calcMinutoInterp(res);
+      const minBadge = `${U.formatMinutoCaja(res, minInterp)}′`;
+      const minReloj = U.formatMinutoLive(res, minInterp, secInterp);
+
+      if (el.classList.contains('ticker-pill__time')) {
+        if (el.textContent !== minBadge) el.textContent = minBadge;
+      } else if (el.classList.contains('vivo-reloj')) {
+        if (el.textContent !== minReloj) el.textContent = minReloj;
+      } else if (el.classList.contains('etiqueta--vivo')) {
+        const display = `● ${minBadge}`;
+        if (el.textContent !== display) el.textContent = display;
+      }
+    });
+  }, 1000);
+
+  Store.enCambios(res => aplicarResultadosLive(res));
+
+  setInterval(() => {
+    actualizarMarcadoresEnDom();
+    pintarTicker(false);
+    if (!esMovil && !document.getElementById('tab-cuadro')?.classList.contains('oculto')) pintarCuadro();
+  }, esMovil ? 15000 : 8000);
+
+  cargar().catch(err => console.warn('cargar:', err));
+
+  /* Los marcadores llegan por Firestore (Store.enCambios). La API la consulta solo el admin. */
+})();
+</script>
+</body>
+</html>

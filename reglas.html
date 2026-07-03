@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reglas — Polla Siigo 2026</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0846f0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+<header class="barra">
+  <div class="contenedor barra__fila">
+    <a class="logo" href="index.html"><img src="icons/icon-192.png" alt="Logo" class="logo__img"><span>Polla Siigo <small>Mundial 2026</small></span></a>
+    <nav class="nav" id="nav">
+      <span class="nav__solo">Reglas</span>
+    </nav>
+  </div>
+</header>
+
+<main class="contenedor">
+
+  <section class="heroe" style="padding:44px 0 18px">
+    <div class="heroe__copa">📖</div>
+    <h1>Reglas del juego</h1>
+    <p class="bajada">Cortas, claras y sin VAR. Léelas una vez y a pronosticar.</p>
+  </section>
+
+  <div class="rejilla rejilla--2" style="align-items:start">
+
+    <div class="panel panel--relleno">
+      <h2>⚽ Cómo se gana puntos</h2>
+      <div class="tabla-envoltura" style="margin-top:10px">
+        <table class="tabla" style="min-width:0">
+          <thead><tr><th>Acierto</th><th>Grupos</th><th>Eliminatorias</th></tr></thead>
+          <tbody>
+            <tr><td>🎯 Marcador exacto</td><td class="num" id="r-ge"></td><td class="num" id="r-ee"></td></tr>
+            <tr><td>✔ Ganador o empate</td><td class="num" id="r-gr"></td><td class="num" id="r-er"></td></tr>
+            <tr><td>🏆 Acertar el campeón</td><td class="num" colspan="2" id="r-bono"></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:14px"><b>Ejemplo:</b> pronosticas Colombia 2–1 Portugal.
+        Si queda 2–1 ganas <b>3 pts</b> (exacto, fase de grupos). Si queda 3–1 ganas
+        <b>1 pt</b> (acertaste el ganador). Si queda 1–1 o gana Portugal: 0 pts, pero
+        queda la anécdota.</p>
+      <p>En eliminatorias se califica el marcador al final del partido
+        <b>incluida la prórroga</b> si la hay (los penales no cuentan para el marcador,
+        solo definen quién avanza).</p>
+    </div>
+
+    <div class="panel panel--relleno">
+      <h2>⏱ Cierres y plazos</h2>
+      <p>✏️ Cada pronóstico se puede crear o cambiar <b>hasta el pitazo inicial</b> de su partido.
+        Después, queda en piedra.</p>
+      <p>🕐 Si un partido aparece con <b>"hora por confirmar"</b>, por seguridad cierra a las
+        <b>11:00 a. m. de Colombia</b> (16:00 UTC) de ese día. Apenas Soporte IT confirme la hora
+        oficial, el cierre se ajusta al pitazo real.</p>
+      <p>🏆 El campeón se elige <b>antes del partido inaugural</b>
+        (<span id="r-cierre-campeon"></span>). Luego no hay cambios.</p>
+      <p>🤝 <b>Desempates en la tabla</b>, en este orden: 1) puntos · 2) marcadores exactos ·
+        3) resultados acertados · 4) quien se registró primero.</p>
+    </div>
+
+    <div class="panel panel--relleno">
+      <h2>💰 Cuotas y premios</h2>
+      <p>La inscripción tiene una cuota según tu moneda. <b>La app no mueve plata</b>:
+        solo registra quién pagó. La cuota se entrega al tesorero
+        (<b id="r-tesorero"></b>) por Nequi, Daviplata, transferencia o en efectivo.</p>
+      <div class="tabla-envoltura" style="margin:10px 0">
+        <table class="tabla" style="min-width:0">
+          <thead><tr><th>Moneda</th><th>Cuota</th></tr></thead>
+          <tbody id="r-cuotas"></tbody>
+        </table>
+      </div>
+      <p>La vaca (el acumulado) de cada moneda se reparte así: <b id="r-premios"></b>. Los tres primeros
+        puestos se llevan el premio; ¡a jugar por el podio! 🏆</p>
+    </div>
+
+    <div class="panel panel--relleno">
+      <h2>👥 Quién puede jugar</h2>
+      <p>🟦 <b>Colaboradores Siigo</b>: con tu correo <b>@siigo.com</b> entras automáticamente.</p>
+      <p>🟨 <b>Familiares y amigos</b>: se registran con su correo personal y el equipo de
+        Soporte IT aprueba el ingreso (suele tardar minutos, no jornadas).</p>
+      <p>🔐 Tu contraseña se guarda cifrada y tus pronósticos solo los puedes editar tú,
+        únicamente mientras el partido esté abierto. La app no muestra los pronósticos
+        de los demás antes del cierre de cada partido.</p>
+      <p>📬 Recibirás correos de bienvenida, recordatorios antes de cada jornada y resúmenes
+        con tu posición. Prometemos no escribir más que el grupo de la familia.</p>
+    </div>
+  </div>
+
+  <div class="aviso aviso--dorado" style="margin-top:18px">
+    ⚖️ Juego interno y amistoso entre colaboradores e invitados de Siigo. La organización
+    (Soporte IT) resuelve cualquier caso no contemplado, con criterio y buen humor.
+  </div>
+
+  <footer class="pie">
+    <p class="creditos">Creado por Nicolás Nieto Daza y Juan Rodríguez · Área de Soporte IT — Siigo</p>
+  </footer>
+</main>
+
+<script type="module" src="js/config.js"></script>
+<script type="module" src="js/fixture.js"></script>
+<script src="js/tema-dinamico.js"></script>
+<script type="module" src="js/utils.js"></script>
+<script type="module">
+  (async () => {
+    const CONFIG = window.CONFIG || {};
+    const R = CONFIG.REGLAS || {};
+    document.getElementById('r-ge').textContent = R.grupos.exacto + ' pts';
+    document.getElementById('r-gr').textContent = R.grupos.resultado + ' pt';
+    document.getElementById('r-ee').textContent = R.eliminatorias.exacto + ' pts';
+    document.getElementById('r-er').textContent = R.eliminatorias.resultado + ' pts';
+    document.getElementById('r-bono').textContent = '+' + R.bonusCampeon + ' pts al final del torneo';
+    document.getElementById('r-cierre-campeon').textContent =
+      U.diaLocal(R.cierreCampeonUTC) + ' · ' + U.horaLocal(R.cierreCampeonUTC) + ' (Colombia)';
+    document.getElementById('r-tesorero').textContent = CONFIG.TESORERO;
+    document.getElementById('r-cuotas').innerHTML = Object.entries(CONFIG.CUOTAS)
+      .map(([cod, m]) => `<tr><td>${U.esc(m.nombre)} (${cod})</td><td class="num">${U.moneda(m.valor, cod)}</td></tr>`).join('');
+    document.getElementById('r-premios').textContent =
+      CONFIG.PREMIOS.map(p => `${p.puesto} ${p.pct}%`).join(' · ');
+
+    // Forzar vista pública: siempre desactivar navegación a áreas que requieren sesión
+    try {
+      const links = ['app.html','tabla.html','cuentas.html'];
+      for (const href of links) {
+        const a = document.querySelector(`nav.nav a[href="${href}"]`);
+        if (a) {
+          a.style.pointerEvents = 'none';
+          a.style.opacity = '0.55';
+          a.title = 'Disponible tras iniciar sesión';
+          a.setAttribute('aria-disabled', 'true');
+        }
+      }
+    } catch (e) {
+      console.error('Reglas: fallo al deshabilitar enlaces', e);
+    }
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+{
+  "name": "Polla Siigo 2026",
+  "short_name": "Polla Siigo",
+  "description": "Polla Mundialista Siigo 2026. Pronostica, compite y celebra con tus compañeros.",
+  "start_url": "/",
+  "display": "standalone",
+  "scope": "/",
+  "background_color": "#071333",
+  "theme_color": "#0846f0",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

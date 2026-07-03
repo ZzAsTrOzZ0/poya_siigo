@@ -1,0 +1,184 @@
+/* Widget de marcadores en vivo — Mundial 2026 */
+
+.mrc-widget {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  color: #1a1a1a;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+/* Header */
+.mrc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.mrc-titulo {
+  font-size: 16px;
+  font-weight: 500;
+}
+.mrc-btn-refresh {
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #555;
+}
+.mrc-btn-refresh:hover { background: #f5f5f5; }
+
+/* Tabs */
+.mrc-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.mrc-tab {
+  padding: 5px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: #666;
+}
+.mrc-tab.active {
+  border-color: #333;
+  color: #111;
+  background: #f5f5f5;
+  font-weight: 500;
+}
+
+/* Estados / feedback */
+.mrc-loading, .mrc-empty {
+  text-align: center;
+  padding: 2rem;
+  color: #888;
+  font-size: 14px;
+}
+.mrc-error {
+  background: #fff0f0;
+  color: #c00;
+  border: 1px solid #f5c0c0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+/* Etiqueta de ronda */
+.mrc-ronda {
+  font-size: 11px;
+  font-weight: 500;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 14px 0 6px;
+}
+
+/* Tarjeta de partido */
+.mrc-card {
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.mrc-card:last-child { margin-bottom: 0; }
+
+/* Meta (badge + sede) */
+.mrc-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.mrc-status-wrap { display: flex; align-items: center; gap: 6px; }
+.mrc-elapsed { font-size: 12px; color: #888; }
+.mrc-venue   { font-size: 12px; color: #aaa; }
+
+/* Badges de estado */
+.mrc-badge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+.mrc-badge-live { background: #e1f5ee; color: #0f6e56; }
+.mrc-badge-ht   { background: #faeeda; color: #854f0b; }
+.mrc-badge-ft   { background: #f1f1f1; color: #666; }
+.mrc-badge-ns   { background: #e6f1fb; color: #185fa5; }
+.mrc-badge-et   { background: #fbeaf0; color: #993556; }
+
+/* Equipos y marcador */
+.mrc-equipos {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.mrc-equipo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.mrc-logo {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+.mrc-logo-ph {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+.mrc-nombre {
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  color: #1a1a1a;
+}
+.mrc-marcador {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 70px;
+}
+.mrc-goles {
+  font-size: 26px;
+  font-weight: 500;
+  color: #111;
+}
+.mrc-ht {
+  font-size: 11px;
+  color: #bbb;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  .mrc-widget { color: #e8e8e8; }
+  .mrc-card   { background: #1e1e1e; border-color: #333; }
+  .mrc-tab         { border-color: #444; color: #aaa; }
+  .mrc-tab.active  { background: #2a2a2a; border-color: #888; color: #eee; }
+  .mrc-btn-refresh { border-color: #444; color: #aaa; }
+  .mrc-btn-refresh:hover, .mrc-btn-expand:hover { background: #2a2a2a; }
+  .mrc-logo-ph     { background: transparent; border-color: #444; color: #999; }
+  .mrc-badge-ft    { background: #2a2a2a; color: #aaa; }
+  .mrc-seccion     { border-top-color: #333; }
+  .mrc-sin-datos   { border-top-color: #333; }
+  .mrc-stat-barra-wrap { background: #333; }
+  .mrc-nombre, .mrc-goles, .mrc-ev-jugador,
+  .mrc-stat-val, .mrc-ev-min { color: #e8e8e8; }
+}

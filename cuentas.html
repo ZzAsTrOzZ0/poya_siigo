@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>La Vaca (Cuentas) — Polla Siigo 2026</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0846f0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+<header class="barra">
+  <div class="contenedor barra__fila">
+    <a class="logo" href="app.html"><img src="icons/icon-192.png" alt="Logo" class="logo__img"><span id="logo-texto">Polla Siigo <small>Mundial 2026</small></span></a>
+    <nav class="nav" id="nav">
+      <a href="app.html">Partidos</a>
+      <a href="tabla.html">Tabla</a>
+      <a href="cuentas.html" class="activo">Cuentas</a>
+      <a href="reglas.html">Reglas</a>
+    </nav>
+    <div class="usuario-mini">
+      <div class="avatar" id="avatar">?</div>
+      <button class="boton boton--fantasma boton--mini" id="salir" type="button">Salir</button>
+    </div>
+  </div>
+</header>
+
+<main class="contenedor">
+
+  <section style="margin-top:26px">
+    <h1 style="margin:0;font-size:26px">💰 Las cuentas claras (y el chocolate espeso)</h1>
+    <p class="sub">La app <b>solo registra</b> la plata: las cuotas se entregan por fuera
+      (Nequi, Daviplata, transferencia o en efectivo) al tesorero — <b id="tesorero"></b>. Aquí todos vemos
+      de cuánto es la vaca (acumulado), quién ya pagó y cómo se repartiría el premio.</p>
+  </section>
+
+  <div class="aviso" id="mi-estado"></div>
+
+  <h2 style="font-size:19px;margin:26px 0 4px">🏦 La Vaca (Acumulado)</h2>
+  <p class="sub">Cada quien juega en su moneda. La plata de cada moneda se reparte entre quienes se pusieron al día.</p>
+  <div class="rejilla rejilla--3" id="botes"></div>
+
+  <h2 style="font-size:19px;margin:30px 0 4px">📒 ¿Quién está colgado con la plata?</h2>
+  <p class="sub">Los que faltan por ponerse al día con el tesorero. Cuando termine el Mundial, el tesorero le paga a los ganadores.</p>
+  <div class="tabla-envoltura">
+    <table class="tabla">
+      <thead><tr><th>Participante</th><th>Área</th><th>Cuota</th><th>Estado</th><th>Movimiento</th></tr></thead>
+      <tbody id="cuerpo-pagos"></tbody>
+    </table>
+  </div>
+
+  <h2 style="font-size:19px;margin:30px 0 4px">🏆 Proyección de premios</h2>
+  <p class="sub" id="nota-premios"></p>
+  <div class="rejilla rejilla--premios" id="premios"></div>
+
+  <p class="sub centro" id="version-cuentas" style="margin-top:12px;font-size:11px;opacity:.6"></p>
+
+  <footer class="pie">
+    <p class="creditos">Creado por Nicolás Nieto Daza y Juan Rodríguez · Área de Soporte IT — Siigo</p>
+  </footer>
+</main>
+
+<script src="js/sw-update.js"></script>
+<script type="module" src="js/config.js?v=20260703"></script>
+<script type="module" src="js/fixture.js?v=20260703"></script>
+<script src="js/tema-dinamico.js?v=20260703"></script>
+<script type="module" src="js/utils.js?v=20260703"></script>
+<script type="module" src="js/store.js?v=20260703"></script>
+<script type="module" src="js/puntos.js?v=20260703"></script>
+<script type="module">
+import { CONFIG } from './js/config.js';
+(async () => {
+  await Store.init();
+  const yo = await Store.sesion();
+  if (!U.requiereSesion(yo)) return;
+  document.getElementById('avatar').textContent = U.iniciales(yo.nombre);
+  document.getElementById('salir').onclick = async () => { await Store.logout(); location.href = 'index.html'; };
+  if (yo.rol === 'admin' || U.esAdmin(yo.correo)) {
+    const a = document.createElement('a'); a.href = 'admin.html'; a.textContent = '🛠 Admin';
+    document.getElementById('nav').appendChild(a);
+  }
+  document.getElementById('tesorero').textContent = CONFIG.TESORERO;
+
+  async function cargar() {
+    try {
+    const [usuarios, todas, resultados, ajustes] = await Promise.all([Store.usuarios(), Store.todasPredicciones(), Store.resultados(), Store.ajustes()]);
+    const activos = usuarios.filter(u => u.estado === 'activo');
+    const botes = Puntos.bote(activos);
+    const tabla = Puntos.tabla(usuarios, todas, resultados, ajustes);
+
+    /* --- mi estado ------------------------------------------- */
+    const miCuota = (CONFIG.CUOTAS[yo.moneda] || { valor: 0 }).valor;
+    const miMoneda = yo.moneda;
+    const yoActual = usuarios.find(u => u.uid === yo.uid) || yo;
+    document.getElementById('mi-estado').className = 'aviso ' + (yoActual.pagado ? 'aviso--verde' : 'aviso--dorado');
+    document.getElementById('mi-estado').innerHTML = yoActual.pagado
+      ? `✅ Tu cuota de <b>${U.moneda(miCuota, miMoneda)}</b> ya figura como pagada. ¡A jugar tranquilo!`
+      : `⏳ Tienes pendiente tu cuota de <b>${U.moneda(miCuota, miMoneda)}</b>. Entrégala al tesorero (${CONFIG.TESORERO}) y él la marcará como pagada.`;
+
+    /* --- botes por moneda ------------------------------------- */
+    document.getElementById('botes').innerHTML = Object.entries(botes).map(([cod, b]) => `
+      <div class="panel panel--relleno">
+        <div class="kpi" style="border:0;padding:0;background:transparent">
+          <div class="valor">${U.moneda(b.total, cod)}</div>
+          <div class="titulo">${U.esc((CONFIG.CUOTAS[cod] || { nombre: cod }).nombre)} · en la vaca</div>
+        </div>
+        <p class="ayuda" style="margin-top:10px">
+          Recaudado: <b style="color:var(--verde-claro)">${U.moneda(b.pagado, cod)}</b> ·
+          Pendiente: <b style="color:var(--dorado)">${U.moneda(b.total - b.pagado, cod)}</b><br>
+          ${b.alDia} de ${b.personas} participante(s) al día.
+        </p>
+      </div>`).join('') || '<div class="aviso">Aún no hay participantes activos.</div>';
+
+    /* --- quién le debe a quién --------------------------------- */
+    const filasPago = activos
+      .slice()
+      .sort((a, b) => (a.pagado === b.pagado) ? a.nombre.localeCompare(b.nombre, 'es') : (a.pagado ? 1 : -1))
+      .map(u => {
+        let cuota = (CONFIG.CUOTAS[u.moneda] || { valor: 0 }).valor;
+        const monedaUsuario = u.moneda;
+        return `<tr class="${u.uid === yo.uid ? 'yo' : ''}">
+          <td><b>${U.esc(u.nombre)}</b>${u.vinculo === 'externo' ? ' <span class="etiqueta">Invitado</span>' : ''}</td>
+          <td>${U.esc(u.area || '')}</td>
+          <td class="num">${U.moneda(cuota, monedaUsuario)}</td>
+          <td>${u.pagado
+            ? '<span class="etiqueta etiqueta--fin">PAGADO ✓</span>'
+            : '<span class="etiqueta etiqueta--dorada">PENDIENTE</span>'}</td>
+          <td class="sub">${u.pagado
+            ? 'Nada pendiente'
+            : `${U.esc(u.nombre.split(' ')[0])} → le debe ${U.moneda(cuota, monedaUsuario)} al tesorero (${CONFIG.TESORERO})`}</td>
+        </tr>`;
+      }).join('');
+    document.getElementById('cuerpo-pagos').innerHTML =
+      filasPago || '<tr><td colspan="5" class="centro sub">Sin participantes todavía.</td></tr>';
+
+    document.getElementById('version-cuentas').textContent =
+      `Reparto vigente: 70% · 20% · 10% · v${CONFIG.APP_VERSION || '?'}`;
+
+    /* --- proyección de premios ---------------------------------- */
+    if (CONFIG.PREMIOS.length !== 3) {
+      document.getElementById('nota-premios').innerHTML =
+        '<span style="color:var(--rojo)">⚠️ Estás viendo una versión antigua (caché del celular). '
+        + 'Cierra la app por completo y vuelve a abrirla, o recarga forzando (Ctrl+F5 / vaciar caché).</span>';
+    } else {
+      document.getElementById('nota-premios').textContent = tabla.length
+        ? 'Si el Mundial terminara hoy, la vaca de CADA moneda se repartiría así (reparto ' +
+          CONFIG.PREMIOS.map(p => p.pct + '%').join(' / ') + '):'
+        : 'Cuando haya tabla, aquí verás cómo quedaría el reparto.';
+    }
+
+    const ganadores = pos => {
+      if (!tabla.length) return null;
+      if (pos === 'ultimo') return tabla[tabla.length - 1];
+      return tabla[pos];
+    };
+    document.getElementById('premios').innerHTML = CONFIG.PREMIOS.map((p, i) => {
+      const f = ganadores(p.desde === 'ultimo' ? 'ultimo' : i);
+      const montos = Object.entries(botes)
+        .map(([cod, b]) => U.moneda(Math.round(b.total * p.pct / 100), cod)).join(' · ') || '—';
+      return `<div class="panel panel--relleno centro">
+        <div style="font-size:30px">${p.puesto.split(' ')[0]}</div>
+        <div style="font-weight:800;margin:4px 0">${U.esc(p.puesto.replace(/^\S+\s/, ''))} · ${p.pct}%</div>
+        <div class="sub">${f ? '👤 ' + U.esc(f.nombre) + ` (${f.pts} pts)` : 'Por definir'}</div>
+        <div class="ayuda" style="margin-top:8px">${montos}</div>
+      </div>`;
+    }).join('');
+    } catch (err) {
+      console.error('Error cargando cuentas:', err);
+      document.getElementById('mi-estado').className = 'aviso aviso--rojo';
+      document.getElementById('mi-estado').innerHTML = '⚠️ No se pudieron cargar las cuentas. Recarga la página o contacta al administrador.';
+      document.getElementById('botes').innerHTML = '<div class="aviso aviso--rojo">Error al cargar datos.</div>';
+      document.getElementById('cuerpo-pagos').innerHTML = '<tr><td colspan="5" class="centro sub">Error al cargar participantes.</td></tr>';
+      document.getElementById('premios').innerHTML = '';
+    }
+  }
+
+  await cargar();
+  Store.enCambios(cargar);
+})();
+</script>
+</body>
+</html>

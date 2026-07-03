@@ -1,0 +1,3496 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de administración — Polla Siigo 2026</title>
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0846f0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+<div id="banner-mantenimiento" class="banner-mantenimiento oculto" role="alert" aria-live="polite"></div>
+
+<header class="barra">
+  <div class="contenedor barra__fila">
+    <a class="logo" href="app.html"><img src="icons/icon-192.png" alt="Logo Polla Siigo" class="logo__img"><span id="logo-texto">Polla Siigo <small>Mundial 2026</small></span></a>
+    <nav class="nav">
+      <a href="app.html">Partidos</a>
+      <a href="tabla.html">Tabla</a>
+      <a href="cuentas.html">Cuentas</a>
+      <a href="admin.html" class="activo">🛠 Admin</a>
+    </nav>
+    <div class="usuario-mini">
+      <div class="avatar" id="avatar">?</div>
+      <button class="boton boton--fantasma boton--mini" id="salir" type="button">Salir</button>
+    </div>
+  </div>
+</header>
+
+<main class="contenedor">
+
+  <section class="fila-flex" style="margin-top:24px">
+    <div>
+      <h1 style="margin:0;font-size:26px" id="admin-titulo">🛠 Panel de Soporte IT</h1>
+      <p class="sub" id="modo-aviso"></p>
+    </div>
+    <div class="empuja fila-flex">
+      <button class="boton boton--mini" id="b-sync" type="button">🔄 Sincronizar con API</button>
+      <button class="boton boton--fantasma boton--mini" id="b-vivo" type="button">📡 Marcador automático: OFF</button>
+      <button class="boton boton--fantasma boton--mini" id="b-limpiar-iniciando" type="button" title="Quita &quot;iniciando&quot; viejos y vacía slots KO mal sincronizados">🧹 Limpiar iniciando</button>
+    </div>
+  </section>
+
+  <div id="sala-config-panel" style="display:none"></div>
+
+  <div class="tabs" style="margin-top:16px">
+    <button class="activo" data-tab="resultados" type="button">⚽ Resultados</button>
+    <button data-tab="gente" type="button">👥 Participantes</button>
+    <button data-tab="calendario" type="button">📅 Calendario y llaves</button>
+    <button data-tab="correos" type="button">✉️ Comunicaciones</button>
+    <button data-tab="pronosticos" type="button">🔮 Pronósticos</button>
+    <button data-tab="aprobaciones" type="button">⏳ Aprobaciones <span id="badge-aprob" class="etiqueta" style="display:none;background:var(--rojo);color:#fff;font-size:10px;margin-left:4px"></span></button>
+    <button data-tab="verificacion" type="button">📊 Auditoría puntos</button>
+  </div>
+
+  <!-- ====== RESULTADOS ====== -->
+  <section id="tab-resultados">
+    <div class="chips" id="chips-res">
+      <button class="chip activo" data-f="cercanos" type="button">⏱ De estos días</button>
+      <button class="chip" data-f="grupos" type="button">Fase de grupos</button>
+      <button class="chip" data-f="elim" type="button">Eliminatorias</button>
+      <button class="chip" data-f="todos" type="button">Todos</button>
+    </div>
+    <div id="lista-res"></div>
+  </section>
+
+  <!-- ====== PARTICIPANTES ====== -->
+  <section id="tab-gente" class="oculto">
+    <div id="pendientes-caja"></div>
+    <div class="tabla-envoltura" style="margin-top:14px">
+      <table class="tabla">
+        <thead><tr><th>Participante</th><th>Correo</th><th>Vínculo</th><th>Cuota</th><th>Pagado</th><th>Rol</th><th>Campeón</th><th>Etiqueta</th><th></th></tr></thead>
+        <tbody id="cuerpo-gente"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ====== CALENDARIO Y LLAVES ====== -->
+  <section id="tab-calendario" class="oculto">
+    <p class="sub">Confirma horas y sedes, y asigna los equipos de las eliminatorias cuando se definan.
+      Los cambios mueven automáticamente el cierre de pronósticos. Hora en formato <b>UTC</b>
+      (Colombia = UTC−5: las 7:00 p. m. de Bogotá son las 00:00 UTC del día siguiente).</p>
+    <div class="chips" id="chips-cal">
+      <button class="chip activo" data-f="sinhora" type="button">🕐 Sin hora confirmada</button>
+      <button class="chip" data-f="elim" type="button">🔥 Eliminatorias</button>
+      <button class="chip" data-f="todos" type="button">Todos</button>
+    </div>
+    <div id="cal-elim-tools" class="cal-elim-tools oculto">
+      <button class="boton boton--mini boton--fantasma" id="b-limpiar-dup-elim" type="button">🧹 Quitar slots duplicados</button>
+      <span class="sub" style="margin:0;font-size:12px">Si el mismo cruce aparece en P76 y P78, deja uno solo.</span>
+    </div>
+    <div id="lista-cal"></div>
+  </section>
+
+  <!-- ====== COMUNICACIONES ====== -->
+  <section id="tab-correos" class="oculto">
+    <div class="rejilla rejilla--2" style="align-items:start">
+      <div class="panel panel--relleno">
+        <h2>⏰ Recordatorio de pronósticos</h2>
+        <p class="sub">Se envía a todos los participantes activos con los partidos que cierran en las próximas 30 horas.</p>
+        <div class="codigo" id="prev-recordatorio" style="max-height:220px;overflow:auto"></div>
+        <div class="sep"></div>
+        <button class="boton boton--verde" id="b-recordatorio" type="button">Enviar recordatorio 📨</button>
+        <p class="ayuda" id="estado-recordatorio"></p>
+      </div>
+      <div class="panel panel--relleno">
+        <h2>📊 Resumen de resultados</h2>
+        <p class="sub">Últimos marcadores finalizados + posición y puntos de cada participante.</p>
+        <div class="codigo" id="prev-resumen" style="max-height:220px;overflow:auto"></div>
+        <div class="sep"></div>
+        <button class="boton" id="b-resumen" type="button">Enviar resumen 📬</button>
+        <p class="ayuda" id="estado-resumen"></p>
+      </div>
+    </div>
+    <div class="aviso" id="aviso-emailjs" style="margin-top:16px"></div>
+  </section>
+
+  <!-- ====== PRONÓSTICOS (SOLO ADMINS) ====== -->
+  <section id="tab-pronosticos" class="oculto">
+    <div class="chips" id="chips-pron">
+      <button class="chip" data-sub="aprobaciones" type="button">⏳ Pendientes de aprobar</button>
+      <button class="chip" data-sub="tarde" type="button">🕵️ Fuera de hora <span id="badge-tarde-pron" class="etiqueta" style="display:none;background:var(--rojo);color:#fff;font-size:10px;margin-left:4px"></span></button>
+      <button class="chip" data-sub="historial" type="button">📋 Historial</button>
+      <button class="chip" data-sub="trampas" type="button">⚠️ Intentos bloqueados</button>
+      <button class="chip" data-sub="registro" type="button">📜 Auditoría completa</button>
+      <button class="chip activo" data-sub="todos" type="button">🔮 Por partido</button>
+    </div>
+    <div id="filtros-pron-historial" class="oculto" style="display:flex;gap:10px;flex-wrap:wrap;margin:8px 0">
+      <select id="filtro-hist-persona" class="mini-input" style="min-width:200px">
+        <option value="">Todos los participantes</option>
+      </select>
+      <select id="filtro-hist-partido" class="mini-input" style="min-width:220px">
+        <option value="">Todos los partidos</option>
+      </select>
+      <select id="filtro-hist-fecha" class="mini-input" style="min-width:170px">
+        <option value="">Todas las fechas</option>
+      </select>
+      <select id="filtro-hist-accion" class="mini-input" style="min-width:180px">
+        <option value="">Todas las acciones</option>
+        <option value="crear">Creó pronóstico</option>
+        <option value="editar">Editó (jugador)</option>
+        <option value="eliminar">Eliminó</option>
+        <option value="admin_editar">Admin editó</option>
+        <option value="admin_eliminar">Admin eliminó</option>
+        <option value="admin_aprobar">Admin aprobó (OK)</option>
+        <option value="tarde">Fuera de hora</option>
+      </select>
+      <button class="boton boton--mini boton--fantasma oculto" id="b-recalc-tarde-partido" type="button" title="Recalcula tarde con la hora actual del partido">🔄 Recalcular hora</button>
+      <button class="boton boton--mini boton--verde oculto" id="b-ok-todos-tarde" type="button" title="Aprueba todos los tardíos visibles con un mismo motivo">✓ Aceptar todos</button>
+      <button class="boton boton--mini boton--verde oculto" id="b-ok-masivo-api" type="button" title="Aprueba todos los tardíos del partido filtrado">✓ OK todos (partido)</button>
+    </div>
+    <p class="sub" id="desc-pron" style="margin:8px 0 4px"></p>
+    <div id="lista-pron"></div>
+  </section>
+
+  <!-- ====== APROBACIONES PENDIENTES ====== -->
+  <section id="tab-aprobaciones" class="oculto">
+    <p class="sub">Pronósticos guardados fuera de hora o que requieren tu visto bueno. Sin aprobación <b>no suman puntos</b>.</p>
+    <div class="fila-flex" style="margin:8px 0;flex-wrap:wrap;gap:8px">
+      <button class="boton boton--verde boton--mini oculto" id="b-aprob-todos" type="button">✓ Aceptar todos</button>
+    </div>
+    <div id="lista-aprobaciones"></div>
+  </section>
+
+  <!-- ====== AUDITORÍA DE PUNTOS ====== -->
+  <section id="tab-verificacion" class="oculto">
+    <p class="sub">Revisa partidos que sumaron puntos, aciertos (exacto/resultado), fallos y partidos finalizados sin pronóstico. Abajo: cola de pronósticos fuera de hora.</p>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:16px 0 12px">
+      <div class="campo" style="margin:0">
+        <label for="verif-usuario">Participante</label>
+        <select id="verif-usuario" class="mini-input" style="min-width:240px"></select>
+      </div>
+      <button class="boton boton--verde boton--mini" id="b-verif-cargar" type="button">Ver auditoría</button>
+      <button class="boton boton--fantasma boton--mini" id="b-verif-export" type="button">📋 Copiar informe</button>
+      <button class="boton boton--fantasma boton--mini" id="b-recuperar-historial" type="button">♻️ Recuperar preds (usuario)</button>
+      <button class="boton boton--verde boton--mini" id="b-recuperar-historial-todos" type="button">♻️ Recuperar TODOS</button>
+      <button class="boton boton--fantasma boton--mini" id="b-limpiar-superseded" type="button">🧹 Limpiar archivadas</button>
+    </div>
+
+    <div id="verif-perdidas" class="aviso oculto" style="margin-bottom:12px;border:1px solid rgba(224,53,75,.45);background:rgba(224,53,75,.08)"></div>
+
+    <div id="verif-stats" class="audit-stats oculto"></div>
+
+    <div class="chips" id="verif-filtros" style="margin-bottom:12px">
+      <button class="chip activo" data-verif-f="" type="button">Todos</button>
+      <button class="chip" data-verif-f="puntos" type="button">✅ Sumaron</button>
+      <button class="chip" data-verif-f="exacto" type="button">🎯 Exactos</button>
+      <button class="chip" data-verif-f="resultado" type="button">✔ Resultado</button>
+      <button class="chip" data-verif-f="fallo" type="button">❌ Falló</button>
+      <button class="chip" data-verif-f="sin_pred" type="button">⬜ Sin pronóstico</button>
+      <button class="chip" data-verif-f="revisar" type="button">🔍 Revisar</button>
+      <button class="chip" data-verif-f="tarde" type="button">⏰ Tarde</button>
+    </div>
+
+    <div id="verif-resumen" class="aviso aviso--dorado oculto" style="margin-bottom:12px"></div>
+    <div id="verif-secciones" class="oculto" style="margin-bottom:16px"></div>
+    <div id="verif-tabla" class="tabla-envoltura"></div>
+
+    <hr style="margin:28px 0;border-color:var(--borde)">
+
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin:0 0 10px">
+      <h2 style="margin:0;font-size:18px">⏳ Pronósticos fuera de hora <span id="verif-cola-badge" class="etiqueta" style="background:rgba(224,53,75,.25);color:#ffb4bc;margin-left:6px">0</span></h2>
+      <div class="fila-flex" style="gap:8px;flex-wrap:wrap">
+        <button class="boton boton--verde boton--mini oculto" id="b-verif-ok-todos" type="button">✓ Aceptar todos</button>
+        <button class="boton boton--fantasma boton--mini" id="b-verif-refrescar" type="button">↻ Actualizar cola</button>
+      </div>
+    </div>
+    <div id="verif-cola" class="tabla-envoltura"></div>
+  </section>
+
+  <!-- ====== MODAL PRONÓSTICOS POR PARTIDO ====== -->
+  <div id="modal-pron" class="modal-overlay">
+    <div class="modal-contenido" style="max-width:580px;width:100%">
+      <div class="modal-header">
+        <div id="modal-pron-titulo" style="flex:1"></div>
+        <button class="modal-cerrar" id="modal-pron-cerrar" type="button">✕</button>
+      </div>
+      <div id="modal-pron-cuerpo"></div>
+    </div>
+  </div>
+
+  <!-- ====== MODAL MOTIVO OK ====== -->
+  <div id="modal-motivo-ok" class="modal-overlay">
+    <div class="modal-contenido" style="max-width:480px;width:100%">
+      <div class="modal-header">
+        <div style="flex:1">
+          <div id="modal-motivo-titulo" style="font-size:17px;font-weight:700">✓ Aprobar pronóstico</div>
+          <p id="modal-motivo-sub" class="sub" style="margin:4px 0 0">Indica por qué se acepta (queda en el registro admin).</p>
+        </div>
+        <button class="modal-cerrar" id="modal-motivo-cerrar" type="button">✕</button>
+      </div>
+      <p id="modal-motivo-resumen" class="aviso" style="margin:12px 0;font-size:13px"></p>
+      <label id="modal-motivo-label" for="modal-motivo-texto" class="sub" style="display:block;margin-bottom:6px">Motivo de la aprobación</label>
+      <textarea id="modal-motivo-texto" class="mini-input" rows="4" style="width:100%;resize:vertical;min-height:90px" placeholder="Ej: Lag al guardar — el marcador sí llegó antes del cierre."></textarea>
+      <div class="fila-flex" style="margin-top:14px;justify-content:flex-end">
+        <button class="boton boton--fantasma" id="modal-motivo-cancelar" type="button">Cancelar</button>
+        <button class="boton boton--verde" id="modal-motivo-confirmar" type="button">✓ Aprobar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== EMERGENCIA TABLA ====== -->
+  <div class="panel panel--relleno" style="margin-top:26px;border:2px solid rgba(224,53,75,.55)">
+    <h2>🆘 Emergencia — Tabla dañada (TODOS los participantes)</h2>
+    <p class="sub">El error del calendario KO afectó <b>a toda la tabla</b>, no solo a Miguel. Los pronósticos siguen guardados, pero muchos quedaron en IDs incorrectos y dejaron de sumar. La recuperación reubica pronósticos de <b>todos</b>, recalcula posiciones y publica la tabla oficial congelada.</p>
+    <p class="sub" style="color:var(--verde-claro);font-size:12px;margin-top:6px">📡 Con el marcador automático ON (o al guardar resultados), la tabla se <b>publica sola</b> cada ~90 s para todos los participantes.</p>
+    <div class="fila-flex" style="flex-wrap:wrap;gap:8px">
+      <button class="boton boton--verde" id="b-emergencia-tabla" type="button">🆘 Recuperar TODA la tabla y publicar</button>
+      <button class="boton boton--fantasma" id="b-auditar-tabla" type="button">🔍 Auditar Top 10 (antes de publicar)</button>
+      <button class="boton boton--fantasma" id="b-diagnostico-partidos" type="button">📋 Diagnóstico partidos y pronósticos</button>
+      <button class="boton boton--verde boton--mini" id="b-fix-ko78" type="button">♻️ Recuperar preds CIV–NOR (P78)</button>
+      <button class="boton boton--verde boton--mini" id="b-recuperar-preds-todos" type="button">♻️ Recuperar preds perdidos (todos)</button>
+      <button class="boton boton--fantasma boton--mini" id="b-fix-ko78-orient" type="button">🔄 Corregir orientación P78</button>
+    </div>
+    <div id="auditoria-tabla-res" class="aviso oculto" style="margin-top:12px;max-height:280px;overflow:auto;font-size:13px"></div>
+    <div id="diagnostico-partidos-res" class="aviso oculto" style="margin-top:12px;max-height:420px;overflow:auto;font-size:13px"></div>
+    <p class="sub" style="margin-top:10px;font-size:12px">Referencia mañana: Miguel ~79 pts, 2.º ~4 pts abajo. Sin respaldo automático de esa hora → Firebase Console → Firestore → <b>Backups</b> (plan Blaze).</p>
+  </div>
+
+  <!-- ====== ZONA DE CONTROL ====== -->
+  <div class="panel panel--relleno" style="margin-top:26px">
+    <h2>🏁 Zona de Control</h2>
+    <p class="sub">Administra funciones globales de la polla y datos de la tabla oficial.</p>
+    <div class="fila-flex">
+      <button class="boton" id="b-publicar" type="button">📌 Publicar tabla oficial</button>
+      <button class="boton boton--verde" id="b-reparar-tabla" type="button">🚨 Restaurar tabla (emergencia)</button>
+      <button class="boton" id="b-mant-on" type="button" style="background:linear-gradient(135deg,#f5b800,#e09500);color:#1a1200">⚠️ Activar aviso mantenimiento</button>
+      <button class="boton boton--fantasma" id="b-mant-off" type="button">✅ Quitar aviso mantenimiento</button>
+      <button class="boton boton--fantasma" id="b-congelar-tabla" type="button">🔒 Congelar tabla publicada</button>
+      <button class="boton boton--fantasma" id="b-descongelar-tabla" type="button">🔓 Descongelar tabla</button>
+      <button class="boton boton--verde" id="b-toggle-campeon" type="button">🏆 Abrir "Mi Campeón"</button>
+      <button class="boton boton--fantasma" id="b-ejemplo" type="button">🧪 Cargar datos de ejemplo (demo)</button>
+      <button class="boton boton--rojo boton--mini empuja" id="b-borrar-demo" type="button">🗑 Vaciar datos demo</button>
+    </div>
+    <div id="historial-tabla-wrap" style="margin-top:16px">
+      <p class="sub" style="margin-bottom:8px">Respaldos automáticos de cada publicación. Restaurar congela la tabla para que no cambie sola.</p>
+      <div id="historial-tabla-lista" class="aviso" style="max-height:220px;overflow:auto">Cargando respaldos…</div>
+    </div>
+  </div>
+
+  <div class="panel panel--relleno" style="margin-top:26px">
+    <h2>🎛 Ajuste Manual de Puntos</h2>
+    <p class="sub">Asigna o quita puntos extra a cualquier participante por cualquier partido.
+      Útil para compensar cuando un partido cambió de hora y no se pudo pronosticar.
+      Los puntos se suman al total automático en la tabla.</p>
+    <div class="rejilla rejilla--2" style="gap:24px;align-items:start">
+      <div>
+        <form id="f-puntos-manuales">
+          <div class="campo">
+            <label for="pm-usuario">Participante</label>
+            <select id="pm-usuario" class="mini-input" required>
+              <option value="">— Selecciona —</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="pm-partido">Partido</label>
+            <select id="pm-partido" class="mini-input" required>
+              <option value="">— Selecciona —</option>
+            </select>
+          </div>
+          <div class="campo">
+            <label for="pm-pts">Puntos (+ / −)</label>
+            <input id="pm-pts" class="mini-input" type="number" required placeholder="Ej: 3, −5, 1">
+            <p class="ayuda">Puedes poner puntos positivos o negativos.</p>
+          </div>
+          <div class="campo">
+            <label for="pm-razon">Razón del ajuste</label>
+            <input id="pm-razon" class="mini-input" type="text" required placeholder="Ej: Partido reprogramado, no se pudo pronosticar">
+            <p class="ayuda">Esta razón se muestra al pasar el mouse sobre los puntos extra.</p>
+          </div>
+          <button type="submit" class="boton boton--verde">Guardar ajuste</button>
+          <span id="pm-estado" class="ayuda" style="margin-left:12px"></span>
+        </form>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <strong style="font-size:13px;color:var(--tinta-2)">Ajustes aplicados</strong>
+          <button class="boton boton--fantasma boton--mini" id="b-pm-refresh" type="button">🔄</button>
+        </div>
+        <div id="pm-lista-aplicados" class="codigo" style="max-height:260px;overflow:auto;font-size:12px">
+          <span class="sub">Sin ajustes manuales.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel panel--relleno" style="margin-top:26px">
+    <h2>🎨 Tema Especial (Prueba)</h2>
+    <p class="sub">Activa el tema en <b>todas las páginas</b> de la polla (Partidos, Tabla, Inicio, etc.). También se activa solo el día que Colombia juega.</p>
+    <div class="fila-flex">
+      <button class="boton boton--verde" id="b-tema-on" type="button">Activar Tema Colombia</button>
+      <button class="boton boton--rojo" id="b-tema-off" type="button">Quitar Tema</button>
+    </div>
+  </div>
+
+  <footer class="pie">
+    <p class="creditos">Creado por Nicolás Nieto Daza y Juan Rodríguez · Área de Soporte IT — Siigo</p>
+  </footer>
+</main>
+
+<script type="module" src="js/config.js"></script>
+<script type="module" src="js/fixture.js"></script>
+<script src="js/tema-dinamico.js"></script>
+<script type="module" src="js/utils.js"></script>
+<script type="module" src="js/store.js"></script>
+<script src="js/mantenimiento.js"></script>
+<script type="module" src="js/puntos.js"></script>
+<script type="module" src="js/api-futbol.js"></script>
+<script type="module" src="js/email.js"></script>
+<script type="module">
+import { CONFIG } from './js/config.js';
+(async () => {
+  await Store.init();
+  const yo = await Store.sesion();
+  if (!U.requiereSesion(yo)) return;
+  if (yo.rol !== 'admin' && !U.esAdmin(yo.correo)) {
+    U.toast(`Esta zona es solo para administradores. Entraste como ${yo.correo || 'sin correo'}.`, 'error');
+    location.href = 'app.html';
+    return;
+  }
+  if (yo.rol !== 'admin' && U.esAdmin(yo.correo)) {
+    try {
+      await Store.actualizarUsuario(yo.uid, { rol: 'admin' });
+      yo.rol = 'admin';
+    } catch (_) { /* sesion() también intenta sincronizar */ }
+  }
+
+  document.getElementById('avatar').textContent = U.iniciales(yo.nombre);
+  document.getElementById('salir').onclick = async () => { await Store.logout(); location.href = 'index.html'; };
+
+  document.getElementById('modo-aviso').innerHTML = Store.esDemo
+    ? 'Modo <b>DEMO</b>: los datos viven solo en este navegador. Cambia a Firebase en <code>js/config.js</code> para producción.'
+    : 'Modo <b>Firebase</b>: cambios visibles para todos en tiempo real.';
+
+  let resultados = {}, ajustes = {}, fRes = 'cercanos', fCal = 'sinhora', simuladores = {};
+  const borradoresRes = {};
+  let focoResGuardado = null;
+  let debounceCargar = null;
+  const partidosEf = () => FIXTURE.partidos.map(p => Puntos.conAjustes(p, ajustes));
+
+  function capturarBorradoresResDom() {
+    document.querySelectorAll('#lista-res [data-pid]').forEach(card => {
+      const pid = card.dataset.pid;
+      card.querySelectorAll('[data-r]').forEach(el => {
+        if (!el.dataset.r) return;
+        if (!borradoresRes[pid]) borradoresRes[pid] = {};
+        borradoresRes[pid][el.dataset.r] = el.value;
+      });
+    });
+  }
+
+  function valRes(pid, r, campo) {
+    const b = borradoresRes[pid];
+    if (b && Object.prototype.hasOwnProperty.call(b, campo)) return b[campo];
+    if (campo === 'gl' || campo === 'gv' || campo === 'minuto') return r[campo] ?? '';
+    if (campo === 'motivoAplazamiento') return r.motivoAplazamiento ?? '';
+    if (campo === 'estado') return r.estado || '';
+    if (campo === 'pen') return r.ganadorPenales || '';
+    return '';
+  }
+
+  function guardarBorradorRes(pid, campo, valor) {
+    if (!borradoresRes[pid]) borradoresRes[pid] = {};
+    borradoresRes[pid][campo] = valor;
+  }
+
+  function restaurarFocoRes() {
+    if (!focoResGuardado) return;
+    const { pid, campo, start, end } = focoResGuardado;
+    const el = document.querySelector(`#lista-res [data-pid="${pid}"] [data-r="${campo}"]`);
+    if (el) {
+      el.focus();
+      if (typeof el.setSelectionRange === 'function' && start != null) {
+        try { el.setSelectionRange(start, end); } catch (_) {}
+      }
+    }
+    focoResGuardado = null;
+  }
+
+  async function cargar() {
+    [resultados, ajustes] = await Promise.all([Store.resultados(), Store.ajustes()]);
+    pintarRes(); pintarCal(); pintarGente(); pintarPrevios(); pintarControl();
+    // Refrescar panel de ajuste manual de puntos
+    window._usuariosCache = await Store.usuarios();
+    mapNombrePron = {};
+    window._usuariosCache.forEach(u => { mapNombrePron[u.uid] = u.nombre; });
+    poblarSelectUsuarios();
+    await cargarPuntosManuales();
+    await Store.cerrarPartidosVencidos?.(partidosEf(), resultados);
+    await actualizarBadgeAprobaciones();
+    autoPublicarTabla();
+  }
+
+  /* ============ TABS ============ */
+  const TABS = ['resultados', 'gente', 'calendario', 'correos', 'pronosticos', 'aprobaciones', 'verificacion'];
+  document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('activo', x === b));
+    TABS.forEach(t => document.getElementById('tab-' + t).classList.toggle('oculto', b.dataset.tab !== t));
+    if (b.dataset.tab === 'pronosticos') pintarPron();
+    if (b.dataset.tab === 'aprobaciones') pintarAprobaciones();
+    if (b.dataset.tab === 'verificacion') { poblarVerifUsuarios(); pintarColaRevision(); }
+  });
+
+  async function actualizarBadgeAprobaciones() {
+    const pend = typeof Store.prediccionesPendientes === 'function' ? await Store.prediccionesPendientes() : [];
+    const badge = document.getElementById('badge-aprob');
+    if (!badge) return;
+    if (pend.length) {
+      badge.style.display = 'inline';
+      badge.textContent = pend.length;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  /* ============ RESULTADOS ============ */
+  document.getElementById('chips-res').onclick = e => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    fRes = b.dataset.f;
+    document.querySelectorAll('#chips-res .chip').forEach(c => c.classList.toggle('activo', c === b));
+    pintarRes();
+  };
+
+  function filtrarRes(lista) {
+    if (fRes === 'grupos') return lista.filter(p => p.fase === 'grupos');
+    if (fRes === 'elim') return lista.filter(p => p.fase === 'eliminatorias');
+    if (fRes === 'cercanos') {
+      const desde = Date.now() - 36 * 36e5, hasta = Date.now() + 48 * 36e5;
+      return lista.filter(p => p.utc && new Date(p.utc) >= new Date(desde) && new Date(p.utc) <= new Date(hasta));
+    }
+    return lista;
+  }
+
+  function pintarRes() {
+    capturarBorradoresResDom();
+    const ae = document.activeElement;
+    const cardActiva = ae?.closest('#lista-res [data-pid]');
+    if (cardActiva && ae.dataset?.r) {
+      focoResGuardado = {
+        pid: cardActiva.dataset.pid,
+        campo: ae.dataset.r,
+        start: ae.selectionStart,
+        end: ae.selectionEnd
+      };
+    } else {
+      focoResGuardado = null;
+    }
+
+    const lista = filtrarRes(partidosEf()).filter(p => p.local && p.visitante)
+      .sort((a, b) => (a.utc || '9').localeCompare(b.utc || '9'));
+    const grupos = U.agruparPartidosDuplicados(lista);
+    const nDup = grupos.reduce((s, g) => s + g.duplicados.length, 0);
+
+    const renderCard = p => {
+      const r = resultados[p.id] || {};
+      const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+      const esElim = p.fase === 'eliminatorias';
+      const dupIds = p._dupIds || [];
+      const gl = valRes(p.id, r, 'gl');
+      const gv = valRes(p.id, r, 'gv');
+      const estado = valRes(p.id, r, 'estado');
+      const motivo = valRes(p.id, r, 'motivoAplazamiento');
+      const minuto = valRes(p.id, r, 'minuto');
+      const pen = valRes(p.id, r, 'pen');
+      return `
+      <article class="partido${dupIds.length ? ' partido--dup-ref' : ''}" data-pid="${p.id}">
+        <div class="partido__meta">
+          <span class="etiqueta etiqueta--dorada">${U.esc(p.etapa)}</span>
+          <span>🕐 ${p.utc ? U.diaLocal(p.utc) + ' · ' + U.horaLocal(p.utc) : 'sin hora'}</span>
+          ${dupIds.length ? `<span class="etiqueta" style="background:rgba(224,53,75,.2);color:#ffb4bc">↔ también ${dupIds.map(id => id.replace('ko-', 'P')).join(', ')}</span>` : ''}
+          <span class="empuja sub">${p.id}</span>
+        </div>
+        <div class="admin-fila">
+          <b style="min-width:160px">${L.b} ${U.esc(L.n)}</b>
+          <input class="mini-input" type="number" min="0" max="${CONFIG.MAX_GOLES}" data-r="gl" value="${U.esc(String(gl))}" placeholder="–" style="width:64px">
+          <span>–</span>
+          <input class="mini-input" type="number" min="0" max="${CONFIG.MAX_GOLES}" data-r="gv" value="${U.esc(String(gv))}" placeholder="–" style="width:64px">
+          <b style="min-width:160px">${U.esc(V.n)} ${V.b}</b>
+          <select class="mini-input" data-r="estado">
+            <option value="">Sin empezar</option>
+            <option value="en_juego" ${estado === 'en_juego' ? 'selected' : ''}>🔴 En juego</option>
+            <option value="aplazado" ${estado === 'aplazado' ? 'selected' : ''}>⏸️ Aplazado</option>
+            <option value="finalizado" ${estado === 'finalizado' ? 'selected' : ''}>✅ Finalizado</option>
+          </select>
+          <input class="mini-input" type="text" data-r="motivoAplazamiento" value="${U.esc(String(motivo))}" placeholder="Motivo del aplazamiento" style="width:200px" title="Motivo por el que se aplazó el partido">
+          <input class="mini-input" type="number" min="0" max="130" data-r="minuto" value="${U.esc(String(minuto))}" placeholder="min" style="width:70px" title="Minuto de juego">
+          ${esElim ? `
+          <select class="mini-input" data-r="pen" title="Si empataron: quién avanzó por penales">
+            <option value="">Penales: —</option>
+            <option value="${p.local}" ${pen === p.local ? 'selected' : ''}>🥅 ${U.esc(L.n)}</option>
+            <option value="${p.visitante}" ${pen === p.visitante ? 'selected' : ''}>🥅 ${U.esc(V.n)}</option>
+          </select>` : ''}
+          <button class="boton boton--verde boton--mini" data-guardar-res type="button">Guardar</button>
+          <button class="boton boton--fantasma boton--mini" data-sync-api-res type="button" title="Traer marcador de la API">📡 Auto</button>
+          ${Store.esDemo ? `<button class="boton boton--fantasma boton--mini" data-simular type="button">${simuladores[p.id] ? '⏹ Parar' : '▶ Simular'}</button>` : ''}
+        </div>
+      </article>`;
+    };
+
+    document.getElementById('lista-res').innerHTML = lista.length ? (
+      (nDup ? `<div class="aviso aviso--dorado" style="margin-bottom:10px">⚠️ ${nDup} cruce(s) duplicado(s). Tras sincronizar se limpian solos; o usa <b>Quitar slots duplicados</b> en Calendario → Eliminatorias.</div>` : '') +
+      grupos.map(g => renderCard({ ...g.canon, _dupIds: g.duplicados.map(d => d.id) })).join('')
+    ) : '<div class="aviso">Nada por aquí con este filtro.</div>';
+    restaurarFocoRes();
+  }
+
+  document.getElementById('lista-res').addEventListener('input', e => {
+    const el = e.target;
+    if (!el.matches('[data-r]')) return;
+    const card = el.closest('[data-pid]');
+    if (!card) return;
+    guardarBorradorRes(card.dataset.pid, el.dataset.r, el.value);
+  });
+  document.getElementById('lista-res').addEventListener('change', e => {
+    const el = e.target;
+    if (!el.matches('[data-r]')) return;
+    const card = el.closest('[data-pid]');
+    if (!card) return;
+    guardarBorradorRes(card.dataset.pid, el.dataset.r, el.value);
+  });
+
+  document.getElementById('lista-res').addEventListener('click', async e => {
+    const card = e.target.closest('[data-pid]'); if (!card) return;
+    const pid = card.dataset.pid;
+    if (e.target.closest('[data-sync-api-res]')) {
+      if (!ApiFutbol.disponible()) { U.toast('Configura la API primero.', 'error'); return; }
+      const btn = e.target.closest('[data-sync-api-res]');
+      btn.disabled = true;
+      try {
+        const r = await ApiFutbol.sincronizar();
+        await cargar();
+        U.toast(`API sincronizada: ${r.marcadores} marcadores${r.asignados ? ` · ${r.asignados} KO asignados` : ''}${r.limpiados ? ` · ${r.limpiados} dup. limpiados` : ''}.`);
+      } catch (err) { U.toast('API: ' + err.message, 'error'); }
+      btn.disabled = false;
+      return;
+    }
+    if (e.target.closest('[data-guardar-res]')) {
+      const v = sel => card.querySelector(`[data-r="${sel}"]`);
+      const gl = parseInt(v('gl').value, 10), gv = parseInt(v('gv').value, 10);
+      const estado = v('estado').value;
+      if (estado && (isNaN(gl) || isNaN(gv))) { U.toast('Pon el marcador completo.', 'error'); return; }
+      const res = { estado: estado || null, gl: isNaN(gl) ? null : gl, gv: isNaN(gv) ? null : gv };
+      const min = parseInt((v('minuto') || {}).value, 10); if (!isNaN(min)) res.minuto = min;
+      const pen = v('pen'); if (pen) res.ganadorPenales = pen.value || null;
+      try { await Store.guardarResultado(pid, res); delete borradoresRes[pid]; U.toast('Resultado guardado ✓'); await cargar(); }
+      catch (err) { U.toast(err.message, 'error'); }
+    }
+    if (e.target.closest('[data-simular]')) {
+      if (simuladores[pid]) { simuladores[pid](); delete simuladores[pid]; pintarRes(); return; }
+      simuladores[pid] = ApiFutbol.simular(pid, async ({ fin }) => {
+        resultados = await Store.resultados(); pintarRes();
+        if (fin) { delete simuladores[pid]; U.toast('Simulación terminada 🏁'); }
+      });
+      U.toast('Simulando partido en vivo… ⚽'); pintarRes();
+    }
+  });
+
+  /* ====== Sincronización con la API ====== */
+  document.getElementById('b-sync').onclick = async function () {
+    if (!ApiFutbol.disponible()) {
+      U.toast('Configura primero API_FUTBOL.proxyUrl en js/config.js (ver README).', 'error'); return;
+    }
+    this.disabled = true; this.textContent = '⏳ Sincronizando…';
+    try {
+      const r = await ApiFutbol.sincronizar();
+      for (const p of partidosEf()) {
+        if (p.utc && !ajustes[p.id]?.cierreMs) {
+          try { await Store.guardarAjuste(p.id, { utc: p.utc, horaOk: p.horaOk !== false }); } catch (_) {}
+        }
+      }
+      U.toast(`Sincronizado: ${r.marcadores} marcadores · ${r.calendario} horarios (de ${r.total})${r.asignados ? ` · ${r.asignados} KO asignados` : ''}${r.limpiados ? ` · ${r.limpiados} dup. limpiados` : ''}.`);
+      await cargar();
+    } catch (err) { U.toast('API: ' + err.message, 'error'); }
+    this.disabled = false; this.textContent = '🔄 Sincronizar con API';
+  };
+
+  /* Publica la tabla oficial en segundo plano durante los partidos en vivo,
+     para que los participantes lean el documento publicado en lugar de
+     recalcular toda la tabla en su navegador (causa de lentitud). */
+  let _autoPubT = 0;
+  let _autoPubBusy = false;
+  async function autoPublicarTabla(force = false) {
+    if (_autoPubBusy) return;
+    if (!force && Date.now() - _autoPubT < 90000) return;
+    _autoPubBusy = true;
+    try {
+      const pub = await Store.tablaPublicada();
+      if (pub?.congelada) return;
+      const [usuarios, todas, puntosManuales] = await Promise.all([
+        Store.usuarios(), Store.todasPredicciones(), Store.puntosManuales()
+      ]);
+      const filas = Puntos.tabla(usuarios, todas, resultados, ajustes, puntosManuales);
+      if (!filas.length) return;
+      const fpAj = Object.keys(ajustes || {}).sort().map(id => {
+        const a = ajustes[id] || {};
+        return `${id}:${a.local || ''}:${a.visitante || ''}:${a.utc || ''}`;
+      }).join('|');
+      await Store.publicarTabla(filas, { ajustesFp: fpAj, silencioso: true, respaldo: false });
+      _autoPubT = Date.now();
+    } catch (_) {
+      /* sin permiso o sin red: se reintenta en el próximo ciclo */
+    } finally {
+      _autoPubBusy = false;
+    }
+  }
+
+  let pararVivo = null;
+  function iniciarMarcadorAutomatico(silencioso = false) {
+    if (pararVivo || !ApiFutbol.disponible()) return false;
+    pararVivo = ApiFutbol.cicloEnVivo(async () => {
+      await cargar();
+    });
+    const btn = document.getElementById('b-vivo');
+    btn.textContent = `📡 Automático cada ${CONFIG.API_FUTBOL.intervaloSegundos}s: ON`;
+    btn.classList.remove('boton--fantasma');
+    if (!silencioso) U.toast('Marcador automático activo. Deja esta pestaña abierta durante los partidos. 📡');
+    return true;
+  }
+
+  function hayPartidosParaSyncAuto() {
+    const ahora = Date.now();
+    if (Object.values(resultados).some(r => r.estado === 'en_juego')) return true;
+    return partidosEf().some(p => {
+      if (!p.local || !p.visitante) return false;
+      const kick = U.inicioPartidoMs(p);
+      if (!kick) return false;
+      const mins = (kick - ahora) / 60000;
+      return mins > -180 && mins <= 45;
+    });
+  }
+
+  document.getElementById('b-vivo').onclick = function () {
+    if (pararVivo) { pararVivo(); pararVivo = null; this.textContent = '📡 Marcador automático: OFF'; this.classList.add('boton--fantasma'); return; }
+    if (!ApiFutbol.disponible()) { U.toast('Configura primero API_FUTBOL.proxyUrl en js/config.js.', 'error'); return; }
+    iniciarMarcadorAutomatico(false);
+  };
+
+  async function limpiarIniciandoObsoletos() {
+    const ahora = Date.now();
+    const ventanaMs = 3 * 60 * 60 * 1000;
+    const candidatos = [];
+    const koSospechosos = [];
+    const bloqueadosFuturo = [];
+
+    for (const p of partidosEf()) {
+      if (!p.local || !p.visitante) continue;
+      const res = resultados[p.id] || {};
+
+      if (U.asignacionKoSospechosa(p)) {
+        koSospechosos.push({ p, res });
+      }
+
+      const kickoff = U.inicioPartidoMs(p);
+
+      /* Partido con pitazo en el FUTURO pero estado bloqueante en BD:
+         las reglas de Firestore rechazan el guardado de pronósticos aunque
+         la app lo muestre abierto. Liberar quitando el estado. */
+      if (kickoff && ahora < kickoff
+          && ['iniciando', 'en_juego', 'finalizado'].includes(res.estado)) {
+        bloqueadosFuturo.push({ p, res });
+        continue;
+      }
+
+      if (res.estado !== 'iniciando') continue;
+      if (!kickoff || ahora < kickoff + ventanaMs) continue;
+      candidatos.push({ p, res });
+    }
+
+    const total = candidatos.length + koSospechosos.length + bloqueadosFuturo.length;
+    if (!total) {
+      U.toast('No hay estados obsoletos, partidos futuros bloqueados ni cruces KO mal asignados.');
+      return;
+    }
+
+    const lineas = [
+      ...bloqueadosFuturo.slice(0, 5).map(({ p, res }) => {
+        const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+        return `· BLOQUEA PRONÓSTICOS (estado "${res.estado}" con pitazo futuro): ${L.n} vs ${V.n} (${p.id})`;
+      }),
+      ...candidatos.slice(0, 5).map(({ p }) => {
+        const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+        return `· Iniciando obsoleto: ${L.n} vs ${V.n} (${p.id})`;
+      }),
+      ...koSospechosos.slice(0, 5).map(({ p }) => {
+        const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+        return `· KO mal fecha: ${L.n} vs ${V.n} (${p.id})`;
+      })
+    ].join('\n');
+    const extra = total > 15 ? `\n… y ${total - 15} más` : '';
+
+    if (!confirm(
+      `¿Corregir ${total} problema(s)?\n\n${lineas}${extra}\n\n` +
+      `Bloqueado con pitazo futuro → quita el estado (reabre pronósticos)\n` +
+      `Iniciando viejo → Finalizado (con marcador) o Sin empezar\n` +
+      `KO mal asignado → vacía equipos y hora del slot`
+    )) return;
+
+    let nEst = 0, nKo = 0, nFut = 0;
+    for (const { p, res } of bloqueadosFuturo) {
+      await Store.guardarResultado(p.id, { ...res, estado: null });
+      /* Si el cierreMs guardado en Firestore quedó viejo (slot reutilizado),
+         recalcularlo para que no vuelvan a marcar "iniciando" al partido. */
+      const cierreGuardado = (ajustes[p.id] || {}).cierreMs;
+      const cierreNuevo = U.calcCierreMs(p);
+      if (cierreGuardado && cierreNuevo && cierreGuardado !== cierreNuevo && cierreGuardado <= ahora) {
+        await Store.guardarAjuste(p.id, { cierreMs: cierreNuevo });
+      }
+      nFut++;
+    }
+
+    for (const { p, res } of candidatos) {
+      const patch = { ...res };
+      if (typeof res.gl === 'number' && typeof res.gv === 'number') {
+        patch.estado = 'finalizado';
+      } else {
+        patch.estado = null;
+      }
+      await Store.guardarResultado(p.id, patch);
+      nEst++;
+    }
+
+    for (const { p, res } of koSospechosos) {
+      await Store.guardarAjuste(p.id, { local: null, visitante: null, utc: null, horaOk: false });
+      if (res.estado === 'iniciando') {
+        await Store.guardarResultado(p.id, { ...res, estado: null });
+        nEst++;
+      }
+      nKo++;
+    }
+
+    [resultados, ajustes] = await Promise.all([Store.resultados(), Store.ajustes()]);
+    U.toast(`🧹 ${nFut} partido(s) reabierto(s) · ${nEst} estado(s) corregido(s) · ${nKo} slot(s) KO vaciado(s).`);
+    pintarRes();
+    pintarCal();
+  }
+
+  document.getElementById('b-limpiar-iniciando').onclick = () => {
+    limpiarIniciandoObsoletos().catch(err => U.toast(err.message, 'error'));
+  };
+
+  /* ============ PARTICIPANTES ============ */
+  async function pintarGente() {
+    const usuarios = (await Store.usuarios()).sort((a, b) =>
+      (a.estado === b.estado ? a.nombre.localeCompare(b.nombre, 'es') : a.estado === 'pendiente' ? -1 : 1));
+    const pendientes = usuarios.filter(u => u.estado === 'pendiente');
+    document.getElementById('pendientes-caja').innerHTML = pendientes.length
+      ? `<div class="aviso aviso--dorado">🔔 <b>${pendientes.length} invitado(s)</b> esperando aprobación.</div>` : '';
+    document.getElementById('cuerpo-gente').innerHTML = usuarios.map(u => {
+      const cuota = (CONFIG.CUOTAS[u.moneda] || { valor: 0 }).valor;
+      return `<tr data-uid="${u.uid}" data-nombre="${U.esc(u.nombre)}" data-campeon="${u.campeon || ''}" data-marca-guardada="${U.esc(u.marcaTrampa || '')}">
+        <td><b>${U.esc(u.nombre)}</b>${u.marcaTrampa ? ` <span class="etiqueta" style="background:rgba(224,53,75,.25);color:#ffb4bc;font-size:10px" title="Marca admin">${U.esc(u.marcaTrampa)}</span>` : ''} <button class="boton boton--fantasma boton--mini" data-editar-nombre type="button" style="padding:0 5px; border:none; background:transparent" title="Editar nombre">✏️</button><br><span class="sub">${U.esc(u.area || '')}</span>${u.intentosTrampa ? ` · <span class="sub" style="color:var(--rojo)">${u.intentosTrampa} intento(s) bloqueado(s)</span>` : ''}</td>
+        <td class="sub">${U.esc(u.correo)}</td>
+        <td>${u.vinculo === 'externo'
+          ? (u.estado === 'pendiente'
+              ? '<button class="boton boton--verde boton--mini" data-aprobar type="button">Aprobar ✓</button>'
+              : '<span class="etiqueta">Invitado</span>')
+          : '<span class="etiqueta etiqueta--fin">Siigo</span>'}</td>
+        <td class="num">${U.moneda(cuota, u.moneda)}</td>
+        <td><label style="cursor:pointer"><input type="checkbox" data-pagado ${u.pagado ? 'checked' : ''}> ${u.pagado ? '✅' : '⏳'}</label></td>
+        <td>
+          <label class="sub" style="display:block;font-size:10px;margin-bottom:4px">Rol</label>
+          <select class="mini-input" data-cambiar-rol aria-label="Rol del participante">
+            <option value="jugador" ${u.rol === 'jugador' ? 'selected' : ''}>Jugador</option>
+            <option value="admin" ${u.rol === 'admin' ? 'selected' : ''}>Admin</option>
+          </select>
+        </td>
+        <td class="centro"><span title="${u.campeon ? FIXTURE.equipo(u.campeon).n : 'Sin elegir'}">${u.campeon ? FIXTURE.equipo(u.campeon).b + ' ' + u.campeon : '—'}</span> <button class="boton boton--fantasma boton--mini" data-editar-campeon type="button" style="padding:0 5px; border:none; background:transparent" title="Editar campeón">✏️</button></td>
+        <td><button class="boton boton--fantasma boton--mini" data-marca-trampa type="button" title="Etiqueta pública (tramposos)">🏷 Etiqueta</button></td>
+        <td><button class="boton boton--rojo boton--mini" data-borrar title="Eliminar participante" type="button">✕</button></td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="9" class="centro sub">Nadie registrado aún.</td></tr>';
+  }
+
+  document.getElementById('cuerpo-gente').addEventListener('click', async e => {
+    const tr = e.target.closest('tr[data-uid]'); if (!tr) return;
+    const uid = tr.dataset.uid;
+    try {
+      if (e.target.closest('[data-aprobar]')) {
+        await Store.actualizarUsuario(uid, { estado: 'activo' });
+        U.toast('Invitado aprobado. ¡Bienvenido a la polla! 🎉'); pintarGente(); return;
+      }
+      if (e.target.closest('[data-borrar]')) {
+        if (!confirm('¿Eliminar a este participante y todos sus pronósticos?')) return;
+        await Store.eliminarUsuario(uid); U.toast('Participante eliminado.'); pintarGente(); return;
+      }
+      if (e.target.closest('[data-editar-nombre]')) {
+        const nombreActual = tr.dataset.nombre;
+        const nuevoNombre = prompt('Editar nombre de participante:', nombreActual);
+        if (nuevoNombre !== null && nuevoNombre.trim() !== '' && nuevoNombre.trim() !== nombreActual) {
+          await Store.actualizarUsuario(uid, { nombre: nuevoNombre.trim() });
+          U.toast('Nombre actualizado ✓'); pintarGente();
+        }
+        return;
+      }
+      if (e.target.closest('[data-editar-campeon]')) {
+        const actual = tr.dataset.campeon;
+        const nuevo = prompt('Ingresa el CÓDIGO de 3 letras del país campeón (ej. ARG, COL, ESP, MEX, BRA).\nDéjalo en blanco para quitarlo:', actual);
+        if (nuevo !== null) {
+          const code = nuevo.trim().toUpperCase();
+          if (code === '' || FIXTURE.equipos[code]) {
+            await Store.actualizarUsuario(uid, { campeon: code === '' ? null : code });
+            U.toast('Campeón actualizado ✓'); pintarGente();
+          } else {
+            U.toast('Código inválido. Usa las 3 letras oficiales (ej. COL).', 'error');
+          }
+        }
+        return;
+      }
+      if (e.target.closest('button[data-marca-trampa]')) {
+        if (await marcarParticipante(uid, tr.dataset.nombre, tr.dataset.marcaGuardada || '⚠️ Marcador fuera de hora')) {
+          pintarGente();
+        }
+        return;
+      }
+    } catch (err) { U.toast(err.message, 'error'); }
+  });
+  document.getElementById('cuerpo-gente').addEventListener('change', async e => {
+    const tr = e.target.closest('tr[data-uid]'); if (!tr) return;
+    const uid = tr.dataset.uid;
+    try {
+      if (e.target.matches('[data-pagado]')) {
+        await Store.actualizarUsuario(uid, { pagado: e.target.checked });
+        U.toast(e.target.checked ? 'Cuota marcada como pagada 💸' : 'Cuota marcada pendiente.');
+        pintarGente();
+      }
+      if (e.target.matches('[data-cambiar-rol]')) {
+        await Store.actualizarUsuario(uid, { rol: e.target.value });
+        U.toast(`Rol actualizado: ${e.target.value === 'admin' ? 'Admin' : 'Jugador'}.`);
+        pintarGente();
+      }
+    } catch (err) { U.toast(err.message, 'error'); }
+  });
+
+  /* ============ CALENDARIO Y LLAVES ============ */
+  document.getElementById('chips-cal').onclick = e => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    fCal = b.dataset.f;
+    document.querySelectorAll('#chips-cal .chip').forEach(c => c.classList.toggle('activo', c === b));
+    document.getElementById('cal-elim-tools').classList.toggle('oculto', fCal !== 'elim');
+    pintarCal();
+  };
+
+  function agruparCalElim(lista) {
+    return U.agruparPartidosDuplicados(lista);
+  }
+
+  async function limpiarDuplicadosElim() {
+    const elim = partidosEf()
+      .filter(p => p.fase === 'eliminatorias' && p.local && p.visitante && p.local !== 'Por definir')
+      .sort((a, b) => a.n - b.n);
+    const vistos = new Map();
+    let n = 0;
+    for (const p of elim) {
+      const key = U.clavePartidoDuplicado(p);
+      if (vistos.has(key)) {
+        await Store.guardarAjuste(p.id, { local: null, visitante: null });
+        n++;
+      } else {
+        vistos.set(key, p.id);
+      }
+    }
+    ajustes = await Store.ajustes();
+    U.toast(n ? `🧹 ${n} slot(s) duplicado(s) vaciado(s).` : 'No hay duplicados que limpiar.');
+    pintarCal();
+  }
+
+  document.getElementById('b-limpiar-dup-elim')?.addEventListener('click', () => {
+    if (!confirm('¿Vaciar equipos en slots duplicados? Se conserva el de menor número (P73 antes que P78).')) return;
+    limpiarDuplicadosElim().catch(err => U.toast(err.message, 'error'));
+  });
+
+  function pintarCal() {
+    let lista = partidosEf();
+    if (fCal === 'sinhora') lista = lista.filter(p => !p.horaOk && p.fase === 'grupos');
+    if (fCal === 'elim') lista = lista.filter(p => p.fase === 'eliminatorias');
+    lista = lista.sort((a, b) => (a.utc || a.fecha + 'T23').localeCompare(b.utc || b.fecha + 'T23'));
+    const opciones = sel => '<option value="">Por definir</option>' + Object.keys(FIXTURE.equipos)
+      .sort((a, b) => FIXTURE.equipo(a).n.localeCompare(FIXTURE.equipo(b).n, 'es'))
+      .map(c => `<option value="${c}" ${sel === c ? 'selected' : ''}>${FIXTURE.equipo(c).n}</option>`).join('');
+
+    const renderCard = p => {
+      const valLocal = p.utc ? new Date(p.utc).toISOString().slice(0, 16) : '';
+      const dupIds = p._dupIds || [];
+      return `
+      <article class="partido${dupIds.length ? ' partido--dup-ref' : ''}" data-pid="${p.id}">
+        <div class="partido__meta">
+          <span class="etiqueta etiqueta--dorada">${U.esc(p.etapa)}</span>
+          ${p.horaOk ? '<span class="etiqueta etiqueta--fin">HORA OK</span>' : '<span class="etiqueta">HORA POR CONFIRMAR</span>'}
+          ${dupIds.length ? `<span class="etiqueta" style="background:rgba(224,53,75,.2);color:#ffb4bc">↔ también ${dupIds.map(id => id.replace('ko-', 'P')).join(', ')}</span>` : ''}
+          <span class="empuja sub">${p.id}</span>
+        </div>
+        <div class="admin-fila">
+          ${p.fase === 'eliminatorias' ? `
+            <select class="mini-input" data-c="local">${opciones(p.local)}</select>
+            <span>vs</span>
+            <select class="mini-input" data-c="visitante">${opciones(p.visitante)}</select>`
+          : `<b>${FIXTURE.equipo(p.local).b} ${U.esc(FIXTURE.equipo(p.local).n)} vs ${U.esc(FIXTURE.equipo(p.visitante).n)} ${FIXTURE.equipo(p.visitante).b}</b>`}
+          <input class="mini-input" type="datetime-local" data-c="utc" value="${valLocal}" title="Fecha y hora en UTC">
+          <span class="sub">UTC</span>
+          <input class="mini-input" type="text" data-c="sede" value="${U.esc(p.sede || '')}" placeholder="Ciudad" style="width:150px">
+          <input class="mini-input" type="text" data-c="estadio" value="${U.esc(p.estadio || '')}" placeholder="Estadio" style="width:170px">
+          <button class="boton boton--mini" data-guardar-cal type="button">Guardar</button>
+        </div>
+      </article>`;
+    };
+
+    let html = '';
+    const pintarGrupos = (items, avisoDup) => {
+      const grupos = agruparCalElim(items);
+      const nDup = grupos.reduce((s, g) => s + g.duplicados.length, 0);
+      if (nDup && avisoDup) {
+        html += `<div class="aviso aviso--dorado" style="margin-bottom:10px">⚠️ ${nDup} slot(s) duplicado(s) — mismo cruce en dos partidos. Usa <b>Quitar slots duplicados</b> o sincroniza con API.</div>`;
+      }
+      html += grupos.map(g => {
+        const p = { ...g.canon, _dupIds: g.duplicados.map(d => d.id) };
+        return renderCard(p);
+      }).join('');
+    };
+
+    if (fCal === 'elim') {
+      pintarGrupos(lista, true);
+    } else if (fCal === 'todos') {
+      const elim = lista.filter(p => p.fase === 'eliminatorias');
+      const otros = lista.filter(p => p.fase !== 'eliminatorias');
+      html += otros.map(p => renderCard(p)).join('');
+      if (elim.length) pintarGrupos(elim, true);
+    } else {
+      html = lista.map(p => renderCard(p)).join('');
+    }
+
+    document.getElementById('lista-cal').innerHTML = html || '<div class="aviso">Todo confirmado por aquí ✅</div>';
+  }
+
+  document.getElementById('lista-cal').addEventListener('click', async e => {
+    if (!e.target.closest('[data-guardar-cal]')) return;
+    const card = e.target.closest('[data-pid]');
+    const pid = card.dataset.pid;
+    const val = s => { const el = card.querySelector(`[data-c="${s}"]`); return el ? el.value : undefined; };
+    const aj = {};
+    const tieneNuevoUtc = !!val('utc');
+    if (val('utc')) {
+      aj.utc = new Date(val('utc') + ':00Z').toISOString();
+      aj.horaOk = true;
+    }
+    if (val('sede') !== undefined) aj.sede = val('sede').trim();
+    if (val('estadio') !== undefined) aj.estadio = val('estadio').trim();
+    if (val('local') !== undefined) aj.local = val('local') || null;
+    if (val('visitante') !== undefined) aj.visitante = val('visitante') || null;
+    const basePartido = FIXTURE.porId(pid);
+    if (basePartido?.fecha && !aj.utc) aj.fecha = basePartido.fecha;
+    try {
+      await Store.guardarAjuste(pid, aj);
+
+      if (tieneNuevoUtc && typeof Store.recalcularTardiosPartido === 'function') {
+        ajustes = await Store.ajustes();
+        const pids = pidsMismoPartido(pid);
+        const res = await Store.recalcularTardiosPartido(pids, id =>
+          Puntos.conAjustes(FIXTURE.porId(id) || {}, ajustes));
+        if (res?.corregidos) {
+          U.toast(`🔄 ${res.corregidos} pronóstico(s) ya no aparecen como tarde con la hora corregida.`);
+        }
+      }
+
+      // Si se cambió la hora/fecha y el partido NO está finalizado,
+      // limpiar el resultado para reabrirlo (permite pronosticar y poner marcador).
+      const resPartido = resultados[pid] || {};
+      if (tieneNuevoUtc && resPartido.estado !== 'finalizado') {
+        await Store.guardarResultado(pid, {});
+        U.toast('🗝 Partido reabierto al cambiar la fecha.');
+      }
+
+      U.toast('Calendario actualizado 📅');
+      await cargar();
+    }
+    catch (err) { U.toast(err.message, 'error'); }
+  });
+
+  /* ============ COMUNICACIONES ============ */
+  async function pintarPrevios() {
+    const txt = Email.textoProximosPartidos(ajustes, resultados, 30);
+    document.getElementById('prev-recordatorio').textContent = txt || 'No hay partidos abiertos en las próximas 30 horas.';
+    const fin = partidosEf().filter(p => (resultados[p.id] || {}).estado === 'finalizado')
+      .sort((a, b) => (b.utc || '').localeCompare(a.utc || '')).slice(0, 10);
+    document.getElementById('prev-resumen').textContent = fin.length
+      ? fin.map(p => {
+          const r = resultados[p.id], L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+          return `• ${L.n} ${r.gl}–${r.gv} ${V.n}`;
+        }).join('\n')
+      : 'Aún no hay partidos finalizados.';
+    document.getElementById('aviso-emailjs').innerHTML = Email.configurado()
+      ? '✅ EmailJS configurado: los correos se envían de verdad.'
+      : '🧪 EmailJS sin configurar: los envíos se <b>simulan</b> (verás la vista previa en la consola). Para enviar de verdad, completa el bloque EMAILJS de <code>js/config.js</code> (guía en el README).';
+  }
+
+  document.getElementById('b-recordatorio').onclick = async function () {
+    const txt = document.getElementById('prev-recordatorio').textContent;
+    const activos = (await Store.usuarios()).filter(u => u.estado === 'activo');
+    if (!activos.length) { U.toast('No hay participantes activos.', 'error'); return; }
+    this.disabled = true;
+    const est = document.getElementById('estado-recordatorio');
+    const r = await Email.recordatorio(activos, txt, (n, tot) => est.textContent = `Procesando ${n}/${tot}…`);
+    est.textContent = `Listo: ${r.enviados} enviados · ${r.simulados} simulados.`;
+    U.toast(`Recordatorio: ${r.enviados} enviados, ${r.simulados} simulados.`);
+    this.disabled = false;
+  };
+
+  document.getElementById('b-resumen').onclick = async function () {
+    const txt = document.getElementById('prev-resumen').textContent;
+    const [usuarios, todas, puntosManuales] = await Promise.all([Store.usuarios(), Store.todasPredicciones(), Store.puntosManuales()]);
+    const activos = usuarios.filter(u => u.estado === 'activo');
+    if (!activos.length) { U.toast('No hay participantes activos.', 'error'); return; }
+    const filas = Puntos.tabla(usuarios, todas, resultados, ajustes, puntosManuales);
+    this.disabled = true;
+    const est = document.getElementById('estado-resumen');
+    const r = await Email.resumen(activos, txt, filas, (n, tot) => est.textContent = `Procesando ${n}/${tot}…`);
+    est.textContent = `Listo: ${r.enviados} enviados · ${r.simulados} simulados.`;
+    U.toast(`Resumen: ${r.enviados} enviados, ${r.simulados} simulados.`);
+    this.disabled = false;
+  };
+
+  /* ============ PUBLICAR / DEMO ============ */
+  function pintarControl() {
+    const override = ajustes.GLOBAL ? ajustes.GLOBAL.campeonAbierto : null;
+    const abierto = override !== null ? override : (new Date(CONFIG.REGLAS.cierreCampeonUTC) > new Date());
+    const btn = document.getElementById('b-toggle-campeon');
+    if (abierto) {
+      btn.textContent = '🔒 Cerrar "Mi Campeón"';
+      btn.className = 'boton boton--rojo';
+    } else {
+      btn.textContent = '🏆 Abrir "Mi Campeón"';
+      btn.className = 'boton boton--verde';
+    }
+  }
+
+  document.getElementById('b-toggle-campeon').onclick = async () => {
+    const override = ajustes.GLOBAL ? ajustes.GLOBAL.campeonAbierto : null;
+    const abierto = override !== null ? override : (new Date(CONFIG.REGLAS.cierreCampeonUTC) > new Date());
+    try {
+      await Store.guardarAjuste('GLOBAL', { campeonAbierto: !abierto });
+      U.toast(!abierto ? 'Sección "Mi Campeón" habilitada 🔓' : 'Sección "Mi Campeón" cerrada 🔒');
+      await cargar();
+    } catch(err) { U.toast(err.message, 'error'); }
+  };
+
+  document.getElementById('b-publicar').onclick = async () => {
+    const [usuarios, todas, puntosManuales] = await Promise.all([Store.usuarios(), Store.todasPredicciones(), Store.puntosManuales()]);
+    const filas = Puntos.tabla(usuarios, todas, resultados, ajustes, puntosManuales);
+    const fpAj = Object.keys(ajustes || {}).sort().map(id => {
+      const a = ajustes[id] || {};
+      return `${id}:${a.local || ''}:${a.visitante || ''}:${a.utc || ''}`;
+    }).join('|');
+    await Store.publicarTabla(filas, { ajustesFp: fpAj });
+    U.toast('Tabla oficial publicada 📌');
+  };
+
+  const MSG_MANT = '⚠️ Mantenimiento en curso: estamos recalculando la tabla y corrigiendo cruces mal ubicados en el calendario eliminatorio. Las clasificaciones pueden cambiar en los próximos minutos. Disculpen las molestias.';
+
+  document.getElementById('b-mant-on').onclick = async () => {
+    try {
+      await Store.guardarAjuste('GLOBAL', { mantenimiento: true, mantenimientoMsg: MSG_MANT });
+      ajustes = await Store.ajustes();
+      U.toast('Aviso de mantenimiento activado');
+      U.pintarBannerMantenimiento?.();
+    } catch (err) {
+      U.toast(err.message || 'Error', 'error');
+    }
+  };
+
+  document.getElementById('b-mant-off').onclick = async () => {
+    try {
+      await Store.guardarAjuste('GLOBAL', { mantenimiento: false });
+      ajustes = await Store.ajustes();
+      U.toast('Aviso de mantenimiento desactivado');
+      U.pintarBannerMantenimiento?.();
+    } catch (err) {
+      U.toast(err.message || 'Error', 'error');
+    }
+  };
+
+  document.getElementById('b-emergencia-tabla').onclick = async () => {
+    document.getElementById('b-reparar-tabla').click();
+  };
+
+  document.getElementById('b-diagnostico-partidos').onclick = async () => {
+    const caja = document.getElementById('diagnostico-partidos-res');
+    caja.classList.remove('oculto');
+    caja.textContent = 'Revisando partidos, marcadores y pronósticos…';
+    try {
+      const [usuarios, todas, resultados] = await Promise.all([
+        Store.usuarios(), Store.todasPredicciones(), Store.resultados()
+      ]);
+      const aj = await Store.ajustes();
+      const activos = usuarios.filter(u => u.estado === 'activo');
+      const nActivos = activos.length;
+      const ahora = Date.now();
+      const filas = [];
+      const vistos = new Set();
+
+      for (const p of FIXTURE.partidos) {
+        let pe = Puntos.conAjustes(p, aj);
+        if (!pe.local || pe.local === 'Por definir') {
+          const eq = U.equiposOficialSlotKo(p.id);
+          if (!eq) continue;
+          pe = { ...pe, local: eq[0], visitante: eq[1] };
+        }
+        const clave = U.clavePartidoDuplicado(pe);
+        if (vistos.has(clave)) continue;
+        vistos.add(clave);
+
+        const pidCanon = U.idSlotKoOficial(pe.local, pe.visitante) || pe.id;
+        const peCanon = Puntos.conAjustes(FIXTURE.porId(pidCanon) || pe, aj);
+        if (peCanon.local && peCanon.visitante && peCanon.local !== 'Por definir') {
+          pe = peCanon;
+        }
+        const res = Puntos._resultadoCanonico(resultados, pe, aj);
+        const finalizado = res?.estado === 'finalizado';
+
+        const slotsConPred = [];
+        let predsCanon = 0;
+        let predsOrfanos = 0;
+        FIXTURE.partidos.forEach(slot => {
+          const px = Puntos.conAjustes(slot, aj);
+          if (U.clavePartidoDuplicado(px) !== clave) return;
+          let n = 0;
+          activos.forEach(u => {
+            const pr = (todas[u.uid] || {})[slot.id];
+            if (pr && pr.gl != null && pr.gv != null && !pr.supersededBy) n++;
+          });
+          if (!n) return;
+          slotsConPred.push({ id: slot.id, n });
+          if (slot.id === pidCanon) predsCanon += n;
+          else predsOrfanos += n;
+        });
+
+        let conPred = 0;
+        activos.forEach(u => {
+          const pr = Puntos._predCanonica((todas[u.uid] || {}), pe, aj, resultados);
+          if (pr && pr.gl != null) conPred++;
+        });
+        const sinPred = nActivos - conPred;
+
+        const cierreMs = U.calcCierreMs(pe);
+        const yaDebioJugar = finalizado
+          || (cierreMs != null && cierreMs < ahora)
+          || (pe.fecha && new Date(`${pe.fecha}T23:59:59Z`).getTime() < ahora);
+
+        filas.push({
+          partido: `${FIXTURE.equipo(pe.local).n} vs ${FIXTURE.equipo(pe.visitante).n}`,
+          pid: pidCanon,
+          etapa: pe.etapa || p.etapa,
+          finalizado,
+          real: finalizado ? `${res.gl}–${res.gv}` : null,
+          predsCanon,
+          predsOrfanos,
+          slotsConPred,
+          conPred,
+          sinPred,
+          faltaResultado: yaDebioJugar && !finalizado,
+          predsDesvinculados: finalizado && predsOrfanos > 0
+        });
+      }
+
+      const sinMarcador = filas.filter(f => f.faltaResultado);
+      const desvinculados = filas.filter(f => f.predsDesvinculados);
+      const sinPreds = filas.filter(f => f.finalizado && f.sinPred > 0);
+      const ok = filas.filter(f => f.finalizado && !f.predsDesvinculados && f.sinPred === 0);
+      const pendientes = filas.filter(f => !f.finalizado && !f.faltaResultado);
+
+      let perdidosHist = [];
+      let casosProfundo = [];
+      try {
+        if (typeof Store.diagnosticarPredsPerdidosProfundo === 'function') {
+          const prof = await Store.diagnosticarPredsPerdidosProfundo();
+          perdidosHist = prof.filas || [];
+          casosProfundo = prof.casos || [];
+        } else if (typeof Store.diagnosticarPredsPerdidos === 'function') {
+          perdidosHist = await Store.diagnosticarPredsPerdidos();
+        }
+      } catch (e) {
+        console.warn('diagnosticarPredsPerdidos:', e);
+      }
+      const recuperables = perdidosHist.filter(f => f.perdidosHistorial > 0 || f.predsOrfanos > 0);
+
+      const linea = f => {
+        const slots = f.slotsConPred.length > 1
+          ? ` · slots: ${f.slotsConPred.map(s => `${s.id}(${s.n})`).join(', ')}`
+          : '';
+        const orf = f.predsOrfanos ? ` · ⚠ ${f.predsOrfanos} pred(s) en slot incorrecto` : '';
+        return `<li><b>${U.esc(f.partido)}</b> <span style="color:var(--tinta-3)">${U.esc(f.pid)}</span>`
+          + (f.real ? ` · ${f.real} FT` : '')
+          + ` · ${f.conPred}/${nActivos} preds${orf}${slots}</li>`;
+      };
+
+      window._ultimoDiagPartidos = { sinMarcador, desvinculados, sinPreds, ok, pendientes, nActivos, recuperables, perdidosHist, casosProfundo };
+
+      caja.innerHTML = `
+        <p style="margin:0 0 8px"><b>Diagnóstico read-only</b> · ${nActivos} participantes activos · ${filas.length} cruces únicos</p>
+        <p style="margin:0 0 10px;color:var(--tinta-3)">No modifica datos. Solo lista qué falta o qué está mal ubicado.</p>
+        <p style="margin:0 0 4px;color:#ffb347"><b>♻️ Recuperables desde historial (${recuperables.length})</b> — tienen pred guardado pero no aparece en el modal:</p>
+        <ul style="margin:0 0 12px 18px;padding:0">${recuperables.length ? recuperables.slice(0, 20).map(f =>
+          `<li><b>${U.esc(f.partido)}</b> <span style="color:var(--tinta-3)">${U.esc(f.pidCanon)}</span>`
+          + ` · ${f.perdidosHistorial} en historial sin visible`
+          + (f.predsOrfanos ? ` · ${f.predsOrfanos} en slot incorrecto` : '')
+          + (f.slotsExtra?.length ? ` · slots: ${f.slotsExtra.join(', ')}` : '')
+          + `</li>`).join('') + (recuperables.length > 20 ? '<li>… y ' + (recuperables.length - 20) + ' más</li>' : '')
+          : '<li style="color:var(--verde-claro)">Ninguno detectado</li>'}</ul>
+        ${casosProfundo.length ? `<p style="margin:0 0 4px;color:var(--rojo)"><b>🔎 Detalle caso por caso (${casosProfundo.length})</b> — quién falta y dónde está el historial:</p>
+        <ul style="margin:0 0 12px 18px;padding:0;max-height:160px;overflow:auto">${casosProfundo.slice(0, 40).map(c =>
+          `<li><b>${U.esc(c.nombre)}</b> → ${U.esc(c.partido)} <span style="color:var(--tinta-3)">pred ${c.pred} · hist ${U.esc(c.pidHistorial)} → ${U.esc(c.pidCanon)}</span></li>`
+        ).join('')}${casosProfundo.length > 40 ? '<li>…</li>' : ''}</ul>` : ''}
+        <p style="margin:0 0 4px;color:var(--rojo)"><b>❌ Sin marcador final (${sinMarcador.length})</b> — deberían tener resultado:</p>
+        <ul style="margin:0 0 12px 18px;padding:0">${sinMarcador.length ? sinMarcador.map(linea).join('') : '<li style="color:var(--verde-claro)">Ninguno</li>'}</ul>
+        <p style="margin:0 0 4px;color:#ffb347"><b>⚠ Pronósticos en slot incorrecto (${desvinculados.length})</b> — hay pred pero no suma:</p>
+        <ul style="margin:0 0 12px 18px;padding:0">${desvinculados.length ? desvinculados.slice(0, 25).map(linea).join('') + (desvinculados.length > 25 ? '<li>… y ' + (desvinculados.length - 25) + ' más</li>' : '') : '<li style="color:var(--verde-claro)">Ninguno</li>'}</ul>
+        <p style="margin:0 0 4px"><b>⬜ Finalizados con participantes sin pronóstico (${sinPreds.length})</b>:</p>
+        <ul style="margin:0 0 12px 18px;padding:0">${sinPreds.length ? sinPreds.slice(0, 15).map(f => `<li><b>${U.esc(f.partido)}</b> · ${f.sinPred} sin pred · ${f.conPred} con pred</li>`).join('') + (sinPreds.length > 15 ? '<li>…</li>' : '') : '<li style="color:var(--verde-claro)">Todos pronosticaron los finalizados</li>'}</ul>
+        <p style="margin:0 0 4px;color:var(--verde-claro)"><b>✅ OK (${ok.length})</b> · marcador + preds enlazados correctamente</p>
+        <p style="margin:0 0 8px;color:var(--tinta-3)"><b>⏳ Pendientes por jugar (${pendientes.length})</b> — sin resultado aún (normal)</p>
+        <button class="boton boton--fantasma boton--mini" type="button" id="b-copiar-diag-partidos">📋 Copiar informe completo</button>`;
+
+      document.getElementById('b-copiar-diag-partidos').onclick = () => {
+        const d = window._ultimoDiagPartidos;
+        if (!d) return;
+        const txt = [
+          `Diagnóstico partidos — ${new Date().toLocaleString('es-CO')}`,
+          `Participantes activos: ${d.nActivos}`,
+          '',
+          `SIN MARCADOR (${d.sinMarcador.length}):`,
+          ...d.sinMarcador.map(f => `- ${f.partido} [${f.pid}] ${f.etapa}`),
+          '',
+          `PREDS EN SLOT INCORRECTO (${d.desvinculados.length}):`,
+          ...d.desvinculados.map(f => `- ${f.partido} [${f.pid}] canon:${f.predsCanon} orfanos:${f.predsOrfanos} ${f.slotsConPred.map(s => s.id + '(' + s.n + ')').join(' ')}`),
+          '',
+          `FINALIZADOS CON GENTE SIN PRED (${d.sinPreds.length}):`,
+          ...d.sinPreds.map(f => `- ${f.partido}: ${f.sinPred} sin pred`),
+          '',
+          `RECUPERABLES DESDE HISTORIAL (${(d.recuperables || []).length}):`,
+          ...(d.recuperables || []).map(f => `- ${f.partido} [${f.pidCanon}] hist:${f.perdidosHistorial} orfanos:${f.predsOrfanos} ${(f.slotsExtra || []).join(' ')}`),
+          '',
+          `DETALLE CASO POR CASO (${(d.casosProfundo || []).length}):`,
+          ...(d.casosProfundo || []).map(c => `- ${c.nombre} | ${c.partido} | pred ${c.pred} | hist:${c.pidHistorial} → ${c.pidCanon}`),
+          '',
+          `OK: ${d.ok.length} · Pendientes: ${d.pendientes.length}`
+        ].join('\n');
+        navigator.clipboard?.writeText(txt);
+        U.toast('Informe copiado al portapapeles.');
+      };
+    } catch (err) {
+      caja.textContent = 'Error: ' + (err.message || err);
+    }
+  };
+
+  document.getElementById('b-recuperar-preds-todos').onclick = async () => {
+    if (!confirm('¿Recuperar pronósticos perdidos en TODOS los partidos detectados?\n\nIgual que P78: historial, slots incorrectos, orientación y nombres.\n\nNo borra nada; solo restaura lo que falta.')) return;
+    try {
+      U.toast('Analizando y recuperando pronósticos…');
+      const r = await Store.recuperarPrediccionesPartidosAfectados();
+      todasPreds = await Store.todasPredicciones();
+      await cargar();
+      autoPublicarTabla(true);
+      const det = (r.detalle || []).map(d => `${d.partido}: +${(d.restaurados || 0) + (d.migrados || 0)}`).slice(0, 5).join('; ');
+      U.toast(`Listo: ${r.partidos || 0} partidos KO · ${r.desdeHistorial || 0} grupos/historial · ${r.restaurados || 0} restaurados · ${r.migrados || 0} migrados${det ? ' · ' + det : ''}`);
+    } catch (err) {
+      U.toast(err.message || 'Error al recuperar', 'error');
+    }
+  };
+
+  document.getElementById('b-fix-ko78').onclick = async () => {
+    if (!confirm('¿Recuperar pronósticos de Costa de Marfil vs Noruega (P78 / ko-78)?\n\nBusca en historial y en el slot viejo ko-76. Corrige orientación local/visitante y nombres.')) return;
+    try {
+      U.toast('Recuperando pronósticos P78…');
+      const r = await Store.recuperarPrediccionesPartido('ko-78', ['ko-76']);
+      const o = await Store.corregirOrientacionPredsPartido('ko-78', { slotOrigen: 'ko-76', soloSinCorregir: true });
+      const n = await Store.enriquecerNombresPredsPartido('ko-78');
+      todasPreds = await Store.todasPredicciones();
+      await cargar();
+      autoPublicarTabla(true);
+      U.toast(`P78: ${r.migrados || 0} migrados, ${r.restaurados || 0} restaurados, ${o.corregidos || 0} orientación, ${n.actualizados || 0} nombres`);
+      await abrirModalPartido('ko-78');
+    } catch (err) {
+      U.toast(err.message || 'Error al recuperar P78', 'error');
+    }
+  };
+
+  document.getElementById('b-fix-ko78-orient').onclick = async () => {
+    if (!confirm('¿Invertir gl/gv de los pronósticos recuperados de ko-76 en P78?\n\nUsa esto si los marcadores se ven al revés (ej. 2-1 en vez de 1-2).')) return;
+    try {
+      U.toast('Corrigiendo orientación P78…');
+      const o = await Store.corregirOrientacionPredsPartido('ko-78', { slotOrigen: 'ko-76', soloSinCorregir: true });
+      const n = await Store.enriquecerNombresPredsPartido('ko-78');
+      todasPreds = await Store.todasPredicciones();
+      autoPublicarTabla(true);
+      U.toast(`P78: ${o.corregidos || 0} pronósticos corregidos, ${n.actualizados || 0} nombres`);
+      await abrirModalPartido('ko-78');
+    } catch (err) {
+      U.toast(err.message || 'Error al corregir P78', 'error');
+    }
+  };
+
+  document.getElementById('b-auditar-tabla').onclick = async () => {
+    const caja = document.getElementById('auditoria-tabla-res');
+    caja.classList.remove('oculto');
+    caja.textContent = 'Calculando tabla de todos los participantes…';
+    try {
+      const [usuarios, todas, resultados, puntosManuales] = await Promise.all([
+        Store.usuarios(), Store.todasPredicciones(), Store.resultados(), Store.puntosManuales()
+      ]);
+      const aj = await Store.ajustes();
+      const filas = Puntos.tabla(usuarios, todas, resultados, aj, puntosManuales);
+      const activos = usuarios.filter(u => u.estado === 'activo');
+      let conPredPerdidos = 0;
+      let casosPerdidos = 0;
+      const detallePerdidos = [];
+      activos.forEach(u => {
+        const d = Puntos.desgloseCompleto(u.uid, u, todas, resultados, aj, puntosManuales);
+        const sinPts = d.filas.filter(f => f.finalizado && f.pred && !f.ptsAuto && !f.ptsManual);
+        if (sinPts.length) {
+          conPredPerdidos++;
+          casosPerdidos += sinPts.length;
+          if (detallePerdidos.length < 15) {
+            detallePerdidos.push(`<b>${U.esc(u.nombre)}</b>: ${sinPts.length} partido(s) con pred pero 0 pts`);
+          }
+        }
+      });
+      const top10 = filas.slice(0, 10);
+      const dif12 = top10.length >= 2 ? top10[0].pts - top10[1].pts : 0;
+      caja.innerHTML = `
+        <p><b>Top 10 actual (todos recalculados):</b></p>
+        <ol style="margin:8px 0 12px 18px;padding:0">${top10.map(f =>
+          `<li><b>${U.esc(f.nombre)}</b> — ${f.pts} pts (${f.exactos} exactos, ${f.aciertos} resultados)</li>`
+        ).join('')}</ol>
+        <p>Diferencia 1.º vs 2.º: <b>${dif12} pts</b> (esta mañana era ~4 pts: Miguel 79, 2.º ~75)</p>
+        <p>Participantes con pronósticos que <b>no están sumando</b>: <b>${conPredPerdidos}</b> (${casosPerdidos} partido(s) en total)</p>
+        ${detallePerdidos.length
+          ? `<p style="margin-top:8px">${detallePerdidos.join('<br>')}${conPredPerdidos > detallePerdidos.length ? '<br>…' : ''}</p>`
+          : '<p style="color:var(--verde-claro)">✓ No hay partidos finalizados con pred en 0 pts — puedes publicar.</p>'}
+        <p style="margin-top:10px;color:var(--tinta-3)">Si hay casos pendientes, pulsa <b>🆘 Recuperar TODA la tabla</b> y vuelve a auditar.</p>`;
+    } catch (err) {
+      caja.textContent = 'Error: ' + (err.message || err);
+    }
+  };
+
+  document.getElementById('b-reparar-tabla').onclick = async () => {
+    if (!confirm(
+      'RECUPERAR TABLA DE TODOS\n\n' +
+      'Afecta a TODOS los participantes, no solo al líder.\n\n' +
+      '1. Reubica pronósticos mal guardados (slots KO incorrectos)\n' +
+      '2. Recalcula puntos de todos\n' +
+      '3. Publica y CONGELA la tabla oficial\n\n' +
+      '¿Continuar?'
+    )) return;
+    const btn = document.getElementById('b-reparar-tabla');
+    btn.disabled = true;
+    try {
+      await Store.guardarAjuste('GLOBAL', { mantenimiento: true, mantenimientoMsg: MSG_MANT });
+      U.pintarBannerMantenimiento?.();
+      U.toast('Recuperando puntos… ⏳');
+      const rep = await (Store.restaurarTablaEmergencia
+        ? Store.restaurarTablaEmergencia(ajustes)
+        : Store.repararPuntosTabla(ajustes));
+      const [usuarios, todas, puntosManuales] = await Promise.all([
+        Store.usuarios(), Store.todasPredicciones(), Store.puntosManuales()
+      ]);
+      resultados = await Store.resultados();
+      ajustes = await Store.ajustes();
+      const filas = Puntos.tabla(usuarios, todas, resultados, ajustes, puntosManuales);
+      const fpAj = Object.keys(ajustes || {}).sort().map(id => {
+        const a = ajustes[id] || {};
+        return `${id}:${a.local || ''}:${a.visitante || ''}:${a.utc || ''}`;
+      }).join('|');
+      await Store.publicarTabla(filas, {
+        ajustesFp: fpAj,
+        silencioso: true,
+        congelada: false,
+        label: 'Recuperación de puntos'
+      });
+      const top = filas[0];
+      let extra = '';
+      if (top) {
+        const u = usuarios.find(x => x.uid === top.uid);
+        const d = Puntos.desgloseCompleto(top.uid, u, todas, resultados, ajustes, puntosManuales);
+        extra = `\n\nLíder: ${top.nombre} — ${top.pts} pts (${d.resumenAuditoria.conPuntos} partidos sumando, bono campeón ${d.bono || 0}).`;
+      }
+      alert(
+        `Tabla de TODOS recuperada y publicada.\n\n` +
+        `• ${rep.limpiados || 0} slot(s) KO corregidos\n` +
+        `• ${rep.migrados || 0} pronóstico(s) reubicados (todos los participantes)` +
+        (rep.huerfanos ? ` (${rep.huerfanos} huérfanos)` : '') + `\n` +
+        `• ${rep.restauradosHist || 0} pronóstico(s) recuperados desde historial\n` +
+        `• ${rep.rehabilitados || 0} pronóstico(s) rehabilitados` +
+        extra +
+        `\n\nTop 10:\n` +
+        filas.slice(0, 10).map((f, i) => `${i + 1}. ${f.nombre} — ${f.pts} pts`).join('\n') +
+        (filas.length >= 2 ? `\n\nDiferencia 1.º–2.º: ${filas[0].pts - filas[1].pts} pts` : '') +
+        `\n\nLa tabla quedó CONGELADA para todos. Pide Tabla + Ctrl+F5.`
+      );
+      await pintarHistorialTabla();
+    } catch (err) {
+      U.toast(err.message || 'Error al restaurar', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  async function pintarHistorialTabla() {
+    const lista = document.getElementById('historial-tabla-lista');
+    if (!lista || typeof Store.listarHistorialTabla !== 'function') return;
+    try {
+      const items = await Store.listarHistorialTabla();
+      if (!items.length) {
+        lista.innerHTML = 'Aún no hay respaldos. Cada publicación guarda uno automático a partir de ahora.';
+        return;
+      }
+      lista.innerHTML = items.slice(0, 12).map(h => {
+        const cuando = h.t ? `${U.diaLocal(new Date(h.t).toISOString())} ${U.horaLocal(new Date(h.t).toISOString())}` : '?';
+        const top = (h.filas || [])[0];
+        const topTxt = top ? `${top.nombre} — ${top.pts} pts` : '—';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--linea)">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:700">${U.esc(cuando)}</div>
+            <div style="font-size:11px;color:var(--tinta-3)">Líder: ${U.esc(topTxt)} · ${(h.filas || []).length} filas${h.label ? ' · ' + U.esc(h.label) : ''}</div>
+          </div>
+          <button type="button" class="boton boton--mini boton--verde" data-restaurar-hist="${U.esc(h.id)}">Restaurar</button>
+        </div>`;
+      }).join('');
+      lista.querySelectorAll('[data-restaurar-hist]').forEach(btn => {
+        btn.onclick = async () => {
+          if (!confirm('¿Restaurar este respaldo y CONGELAR la tabla?\n\nTodos verán esas posiciones fijas.')) return;
+          try {
+            await Store.restaurarHistorialTabla(btn.dataset.restaurarHist, { congelar: true });
+            U.toast('Tabla restaurada y congelada 🔒');
+            await pintarHistorialTabla();
+          } catch (err) {
+            U.toast(err.message || 'Error', 'error');
+          }
+        };
+      });
+    } catch (err) {
+      lista.textContent = 'No se pudieron cargar respaldos: ' + (err.message || err);
+    }
+  }
+
+  document.getElementById('b-congelar-tabla').onclick = async () => {
+    try {
+      if (typeof Store.setTablaCongelada !== 'function') throw new Error('Actualiza la página (Ctrl+F5)');
+      await Store.setTablaCongelada(true);
+      U.toast('Tabla congelada 🔒');
+    } catch (err) { U.toast(err.message || 'Error', 'error'); }
+  };
+
+  document.getElementById('b-descongelar-tabla').onclick = async () => {
+    try {
+      if (typeof Store.setTablaCongelada !== 'function') throw new Error('Actualiza la página (Ctrl+F5)');
+      await Store.setTablaCongelada(false);
+      U.toast('Tabla descongelada 🔓');
+    } catch (err) { U.toast(err.message || 'Error', 'error'); }
+  };
+
+  document.getElementById('b-ejemplo').onclick = async () => {
+    if (!Store.esDemo) { U.toast('Solo disponible en modo demo.', 'error'); return; }
+    await Store.cargarEjemplo();
+    U.toast('Datos de ejemplo cargados 🧪'); await cargar();
+  };
+
+  document.getElementById('b-borrar-demo').onclick = async () => {
+    if (!Store.esDemo) { U.toast('Solo disponible en modo demo.', 'error'); return; }
+    if (!confirm('¿Borrar TODOS los datos demo de este navegador (incluida tu cuenta)?')) return;
+    localStorage.removeItem('pollaSiigo'); sessionStorage.clear();
+    location.href = 'index.html';
+  };
+
+  /* ============ AJUSTE MANUAL DE PUNTOS ============ */
+  let _puntosManuales = [];
+
+  async function cargarPuntosManuales() {
+    _puntosManuales = await Store.puntosManuales();
+    pintarPuntosManuales();
+    poblarSelectPartidos();
+  }
+
+  function poblarSelectPartidos() {
+    const sel = document.getElementById('pm-partido');
+    sel.innerHTML = '<option value="">— Selecciona —</option>';
+    partidosEf()
+      .filter(p => p.local && p.visitante)
+      .sort((a, b) => (a.utc || '9').localeCompare(b.utc || '9'))
+      .forEach(p => {
+        const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+        sel.innerHTML += `<option value="${p.id}">${p.id} · ${L.b} ${L.n} vs ${V.n} ${V.b}</option>`;
+      });
+  }
+
+  function pintarPuntosManuales() {
+    const caja = document.getElementById('pm-lista-aplicados');
+    if (!_puntosManuales.length) {
+      caja.innerHTML = '<span class="sub">Sin ajustes manuales.</span>';
+      return;
+    }
+    const usuarios = (window._usuariosCache || []);
+    caja.innerHTML = _puntosManuales.map(pm => {
+      const u = usuarios.find(x => x.uid === pm.uid);
+      const nom = u ? u.nombre : pm.uid.slice(0, 8);
+      const p = FIXTURE.partidos.find(x => x.id === pm.pid);
+      const L = p && p.local ? FIXTURE.equipo(p.local) : null;
+      const V = p && p.visitante ? FIXTURE.equipo(p.visitante) : null;
+      const partido = (L && V) ? `${L.b} ${L.n} vs ${V.n}` : (pm.pid || '?');
+      const signo = Number(pm.pts) > 0 ? '+' : '';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div style="flex:1;min-width:0">
+          <div><b>${U.esc(nom)}</b> · <span style="color:${Number(pm.pts) >= 0 ? 'var(--verde-claro)' : 'var(--rojo)'}">${signo}${pm.pts} pts</span></div>
+          <div style="font-size:11px;color:var(--tinta-3)">${U.esc(partido)}</div>
+          <div style="font-size:11px;color:var(--tinta-3)" title="${U.esc(pm.razon || '')}">💬 ${U.esc(pm.razon || '')}</div>
+        </div>
+        <button class="boton boton--fantasma boton--mini" data-pm-quitar="${pm.uid}|${pm.pid}" type="button" style="flex-shrink:0" title="Quitar este ajuste">✕</button>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('f-puntos-manuales').addEventListener('submit', async e => {
+    e.preventDefault();
+    const uid = document.getElementById('pm-usuario').value;
+    const pid = document.getElementById('pm-partido').value;
+    const pts = parseInt(document.getElementById('pm-pts').value, 10);
+    const razon = document.getElementById('pm-razon').value.trim();
+    if (!uid || !pid || isNaN(pts) || !razon) { U.toast('Completa todos los campos.', 'error'); return; }
+    const est = document.getElementById('pm-estado');
+    try {
+      await Store.guardarPuntoManual(uid, pid, pts, razon);
+      U.toast(`Ajuste guardado: ${pts > 0 ? '+' : ''}${pts} pts a ${window._usuariosCache.find(u => u.uid === uid)?.nombre || uid}`);
+      est.textContent = '✓ Guardado';
+      document.getElementById('pm-pts').value = '';
+      document.getElementById('pm-razon').value = '';
+      await cargarPuntosManuales();
+    } catch (err) { U.toast(err.message, 'error'); est.textContent = '✕ Error'; }
+  });
+
+  document.getElementById('pm-lista-aplicados').addEventListener('click', async e => {
+    const btn = e.target.closest('[data-pm-quitar]');
+    if (!btn) return;
+    const [uid, pid] = btn.dataset.pmQuitar.split('|');
+    try {
+      await Store.quitarPuntoManual(uid, pid);
+      U.toast('Ajuste quitado.');
+      await cargarPuntosManuales();
+    } catch (err) { U.toast(err.message, 'error'); }
+  });
+
+  document.getElementById('b-pm-refresh').onclick = async () => {
+    window._usuariosCache = await Store.usuarios();
+    poblarSelectUsuarios();
+    await cargarPuntosManuales();
+    U.toast('Lista actualizada.');
+  };
+
+  function poblarSelectUsuarios() {
+    const sel = document.getElementById('pm-usuario');
+    sel.innerHTML = '<option value="">— Selecciona —</option>';
+    (window._usuariosCache || []).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')).forEach(u => {
+      sel.innerHTML += `<option value="${u.uid}">${U.esc(u.nombre)} ${u.area ? '· ' + U.esc(u.area) : ''}</option>`;
+    });
+  }
+
+  /* ============ PRONÓSTICOS ============ */
+  let subPron = 'todos';
+  let todasPreds = {}, mapNombrePron = {};
+
+  function nombreParticipante(uid, pred) {
+    return mapNombrePron[uid]
+      || pred?.nombre
+      || (window._usuariosCache || []).find(u => u.uid === uid)?.nombre
+      || uid;
+  }
+
+  async function contarPronosticosTarde() {
+    const [historial, todasHist, registro] = await Promise.all([
+      typeof Store.historialPredicciones === 'function' ? Store.historialPredicciones() : [],
+      Store.todasPredicciones(),
+      typeof Store.registroAdmin === 'function' ? Store.registroAdmin() : []
+    ]);
+    const rechazadas = clavesRechazadasAdmin(historial, registro, todasHist);
+    return dedupeHistorialTarde(historial, todasHist, rechazadas).length;
+  }
+
+  async function actualizarBadgeTarde(n) {
+    const badge = document.getElementById('badge-tarde-pron');
+    if (!badge) return;
+    if (n > 0) {
+      badge.style.display = 'inline';
+      badge.textContent = n;
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  document.getElementById('chips-pron').addEventListener('click', e => {
+    const b = e.target.closest('.chip'); if (!b) return;
+    subPron = b.dataset.sub;
+    document.querySelectorAll('#chips-pron .chip').forEach(c => c.classList.toggle('activo', c === b));
+    pintarPron();
+  });
+
+  /* --- Modal pronósticos por partido --- */
+  const modalPron = document.getElementById('modal-pron');
+  document.getElementById('modal-pron-cerrar').onclick = () => modalPron.classList.remove('activo');
+  modalPron.addEventListener('click', e => { if (e.target === modalPron) modalPron.classList.remove('activo'); });
+
+  function filaTardeClass(tarde) {
+    return tarde ? ' style="background:rgba(224,53,75,.12)"' : '';
+  }
+
+  function botonOkPerdonar(h) {
+    return `<button class="boton boton--verde boton--mini" type="button" data-perdonar-uid="${U.esc(h.uid)}" data-perdonar-pid="${U.esc(h.pid)}" data-perdonar-nombre="${U.esc(h.nombre || h.uid || '')}" data-perdonar-gl="${h.gl}" data-perdonar-gv="${h.gv}" data-perdonar-t="${h.t || Date.now()}" data-perdonar-min="${h.minTarde || 0}" title="Aprobar — quitar TARDE">✓ OK</button>`;
+  }
+
+  function pidsMismoPartido(pid) {
+    const pe = Puntos.conAjustes(FIXTURE.porId(pid) || {}, ajustes);
+    const clave = U.clavePartidoDuplicado(pe);
+    const eqOf = U.equiposOficialSlotKo(pid);
+    const clKo = eqOf ? U.claveParejaKo(eqOf[0], eqOf[1]) : null;
+    const pids = FIXTURE.partidos
+      .map(p => Puntos.conAjustes(p, ajustes))
+      .filter(p => {
+        if (U.clavePartidoDuplicado(p) === clave) return true;
+        if (!clKo) return false;
+        if (p.local && p.visitante && U.claveParejaKo(p.local, p.visitante) === clKo) return true;
+        const eq2 = U.equiposOficialSlotKo(p.id);
+        return eq2 && U.claveParejaKo(eq2[0], eq2[1]) === clKo;
+      })
+      .map(p => p.id);
+    return [...new Set(pids.length ? pids : [pid])];
+  }
+
+  /* Solo slots donde el usuario tiene pronóstico guardado en Firestore. */
+  function pidsPrediccionUsuario(uid, pid, todasPred) {
+    const preds = (todasPred || {})[uid] || {};
+    const ids = pidsMismoPartido(pid).filter(id => preds[id]);
+    if (ids.length) return ids;
+    const pe = Puntos.conAjustes(FIXTURE.porId(pid) || {}, ajustes);
+    const canon = Puntos._predCanonicaConSlot(preds, pe, ajustes);
+    if (canon.pr && canon.pidOrigen && preds[canon.pidOrigen]) return [canon.pidOrigen];
+    return [];
+  }
+
+  /* Slot canónico del fixture (para crear pronóstico si solo hay historial). */
+  function pidCanonicoPartido(pid, uid, todasPred) {
+    const pe = Puntos.conAjustes(FIXTURE.porId(pid) || {}, ajustes);
+    const ctx = { misPred: (todasPred || {})[uid] || {} };
+    const canon = U.dedupePartidos(
+      FIXTURE.partidos
+        .map(p => Puntos.conAjustes(p, ajustes))
+        .filter(p => p.local && p.visitante && p.local !== 'Por definir'),
+      ctx
+    ).find(p => U.clavePartidoDuplicado(p) === U.clavePartidoDuplicado(pe));
+    return canon?.id || pid;
+  }
+
+  function pidsParaAccionAdmin(uid, pid, todasPred) {
+    const existentes = pidsPrediccionUsuario(uid, pid, todasPred);
+    if (existentes.length) return existentes;
+    return [pidCanonicoPartido(pid, uid, todasPred)];
+  }
+
+  function claveCasoAdmin(uid, pid) {
+    const pe = Puntos.conAjustes(FIXTURE.porId(pid) || {}, ajustes);
+    return `${uid}__${U.clavePartidoDuplicado(pe)}`;
+  }
+
+  function clavesRechazadasAdmin(historial, registro, todasHist) {
+    const rechazadas = new Set();
+    Object.entries(todasHist || {}).forEach(([uid, preds]) => {
+      Object.entries(preds || {}).forEach(([pid, pr]) => {
+        if (pr?.aprobado === false) rechazadas.add(claveCasoAdmin(uid, pid));
+      });
+    });
+    (historial || []).forEach(h => {
+      if (h.accion === 'admin_rechazar' || h.rechazado || h.rechazadoPorAdmin) {
+        rechazadas.add(claveCasoAdmin(h.uid, h.pid));
+      }
+    });
+    (registro || []).forEach(r => {
+      if (r.accion === 'rechazar_tarde' && r.uid && r.pid) {
+        rechazadas.add(claveCasoAdmin(r.uid, r.pid));
+      }
+    });
+    return rechazadas;
+  }
+
+  function ultimoMarcadorHistorial(historial, uid, pid) {
+    const clave = U.clavePartidoDuplicado(Puntos.conAjustes(FIXTURE.porId(pid) || {}, ajustes));
+    let mejor = null;
+    (historial || []).forEach(h => {
+      if (h.uid !== uid || h.gl == null || h.gv == null) return;
+      const pe = Puntos.conAjustes(FIXTURE.porId(h.pid) || {}, ajustes);
+      if (U.clavePartidoDuplicado(pe) !== clave) return;
+      if (!mejor || (h.t || 0) >= (mejor.t || 0)) mejor = { gl: h.gl, gv: h.gv, t: h.t };
+    });
+    return mejor;
+  }
+
+  function estadoHistorialPron(h, todasHist, rechazadas = null) {
+    const pe = Puntos.conAjustes(FIXTURE.porId(h.pid) || {}, ajustes);
+    const predActual = (todasHist[h.uid] || {})[h.pid]
+      || Puntos._predCanonica(todasHist[h.uid] || {}, pe, ajustes);
+    const clave = claveCasoAdmin(h.uid, h.pid);
+    const rechazado = !!(predActual?.aprobado === false || h.rechazado || h.rechazadoPorAdmin
+      || rechazadas?.has(clave));
+    const perdonado = !!(predActual?.perdonadoPorAdmin || h.perdonadoPorAdmin);
+    const tRef = h.t || predActual?.t;
+    const staleMarcado = !!(h.fueraDeTiempo || predActual?.fueraDeTiempo);
+    const tarde = !perdonado && !rechazado && U.esTardeRecalculado(pe, tRef, predActual);
+    const falsoPositivoHora = !perdonado && !rechazado && U.falsoPositivoHoraApi(pe, tRef, {
+      perdonado,
+      fueraDeTiempoGuardado: staleMarcado
+    });
+    const detalle = tarde && tRef ? U.detalleTarde(pe, tRef) : null;
+    const motivoPerdon = predActual?.motivoPerdon || h.motivoPerdon || '';
+    return { pe, predActual, perdonado, rechazado, tarde, falsoPositivoHora, staleMarcado, minTarde: detalle?.minTarde || 0, detalle, motivoPerdon };
+  }
+
+  function filasMismoPartido(filas, pid) {
+    const ids = pidsMismoPartido(pid);
+    const clave = U.clavePartidoDuplicado(Puntos.conAjustes(FIXTURE.porId(pid) || {}, ajustes));
+    return filas.filter(h => {
+      if (ids.includes(h.pid)) return true;
+      const peH = Puntos.conAjustes(FIXTURE.porId(h.pid) || {}, ajustes);
+      return U.clavePartidoDuplicado(peH) === clave;
+    });
+  }
+
+  async function recalcularTardiosDesdeAdmin(pid) {
+    if (typeof Store.recalcularTardiosPartido !== 'function') {
+      U.toast('Recálculo no disponible en este modo.', 'error');
+      return null;
+    }
+    const pids = pidsMismoPartido(pid);
+    const res = await Store.recalcularTardiosPartido(pids, id =>
+      Puntos.conAjustes(FIXTURE.porId(id) || {}, ajustes));
+    return res;
+  }
+
+  function solicitarMotivoAdmin(h, modo = 'aprobar') {
+    return new Promise(resolve => {
+      const modal = document.getElementById('modal-motivo-ok');
+      const resumen = document.getElementById('modal-motivo-resumen');
+      const texto = document.getElementById('modal-motivo-texto');
+      const titulo = document.getElementById('modal-motivo-titulo');
+      const sub = document.getElementById('modal-motivo-sub');
+      const label = document.getElementById('modal-motivo-label');
+      const confirmBtn = document.getElementById('modal-motivo-confirmar');
+      const esRechazo = modo === 'rechazar';
+      const esMasivo = !!h.masivo;
+      const partido = h.partido || etiquetaPartido(h.pid);
+      const diag = h.diag || infoPtsTarde(h);
+      titulo.textContent = esRechazo
+        ? '✕ Rechazar — no suma puntos'
+        : (esMasivo ? `✓ Aprobar ${h.cantidad || h.nombre}` : '✓ Aprobar pronóstico');
+      sub.textContent = esRechazo
+        ? 'Escribe por qué no cuenta. Queda guardado por si el participante reclama.'
+        : (esMasivo
+          ? 'Un solo motivo para todos — queda en el registro admin de cada participante.'
+          : 'Indica por qué se acepta (queda en el registro admin).');
+      label.textContent = esRechazo ? 'Motivo del rechazo' : 'Motivo de la aprobación';
+      texto.placeholder = esRechazo
+        ? 'Ej: Guardó 2 min después del cierre. Reglas: pronóstico antes del pitazo.'
+        : (esMasivo
+          ? 'Ej: Error de hora en la API — todos guardaron antes del pitazo real.'
+          : 'Ej: Lag al guardar — el marcador sí llegó antes del cierre.');
+      confirmBtn.textContent = esRechazo ? '✕ Rechazar' : (esMasivo ? '✓ Aprobar todos' : '✓ Aprobar');
+      confirmBtn.className = esRechazo ? 'boton boton--rojo' : 'boton boton--verde';
+      const pts = diag?.ptsActuales || diag?.ptsDebidos || 0;
+      if (esMasivo) {
+        resumen.innerHTML = `<b>${U.esc(h.cantidad || h.nombre)}</b> pronóstico(s)${partido ? ` · ${U.esc(partido)}` : ''}`
+          + (h.resumenExtra ? `<br><span class="sub" style="font-size:12px">${U.esc(h.resumenExtra)}</span>` : '');
+      } else {
+        resumen.innerHTML = `<b>${U.esc(h.nombre || h.uid)}</b> · ${U.esc(partido)} · <b>${h.gl}–${h.gv}</b>`
+          + (diag?.linea2 ? `<br><span style="font-size:12px;color:var(--rojo)">${U.esc(diag.linea2)}</span>` : (h.minTarde ? ` · <span style="color:var(--rojo)">${h.minTarde} min tarde</span>` : ''))
+          + (esRechazo && pts ? `<br><span style="font-size:12px;color:var(--rojo);font-weight:700">${pts} pts no sumarán en la tabla</span>` : '')
+          + (!esRechazo && diag?.ptsAccion ? `<br><span style="font-size:12px;color:var(--dorado)">${U.esc(diag.ptsAccion)}</span>` : '');
+      }
+      texto.value = esRechazo && diag?.linea2
+        ? `Pronóstico fuera de hora: ${diag.linea2.replace(/\.$/, '')}. No suma por reglas de la polla.`
+        : '';
+      modal.classList.add('activo');
+      texto.focus();
+      const cerrar = val => {
+        modal.classList.remove('activo');
+        document.getElementById('modal-motivo-confirmar').onclick = null;
+        document.getElementById('modal-motivo-cancelar').onclick = null;
+        document.getElementById('modal-motivo-cerrar').onclick = null;
+        modal.onclick = null;
+        resolve(val);
+      };
+      document.getElementById('modal-motivo-confirmar').onclick = () => {
+        const motivo = texto.value.trim();
+        if (!motivo) {
+          U.toast(esRechazo ? 'Escribe el motivo del rechazo.' : 'Escribe el motivo de la aprobación.', 'error');
+          texto.focus();
+          return;
+        }
+        cerrar(motivo);
+      };
+      document.getElementById('modal-motivo-cancelar').onclick = () => cerrar(null);
+      document.getElementById('modal-motivo-cerrar').onclick = () => cerrar(null);
+      modal.onclick = e => { if (e.target === modal) cerrar(null); };
+    });
+  }
+
+  const solicitarMotivoOk = h => solicitarMotivoAdmin(h, 'aprobar');
+
+  function solicitarMotivoMasivo(opts) {
+    return solicitarMotivoAdmin({
+      masivo: true,
+      cantidad: opts.cantidad,
+      nombre: `${opts.cantidad} participante(s)`,
+      partido: opts.partido || `${opts.cantidad} pronóstico(s)`,
+      resumenExtra: opts.resumenExtra || '',
+      gl: '—',
+      gv: '—'
+    }, 'aprobar');
+  }
+
+  async function perdonarVariosTardeAdmin(filas, opts = {}) {
+    const pendientes = filas
+      .filter(h => !h.perdonado && !h.rechazado && (opts.incluirPendientes || h.tarde !== false))
+      .map(h => ({ ...h, ...filaTardeParaAccion(h) }));
+    if (!pendientes.length) {
+      U.toast('No hay pronósticos pendientes de aprobar.', 'error');
+      return;
+    }
+    const partidoLabel = opts.partido
+      || (opts.pid ? etiquetaPartido(opts.pid) : `${pendientes.length} pronóstico(s) del listado`);
+    const motivo = await solicitarMotivoMasivo({
+      cantidad: pendientes.length,
+      partido: partidoLabel,
+      resumenExtra: opts.resumenExtra || ''
+    });
+    if (!motivo) return;
+    if (!confirm(`¿Aprobar ${pendientes.length} pronóstico(s) con el mismo motivo?\n\n"${motivo}"`)) return;
+    try {
+      let ok = 0;
+      let err = 0;
+      for (const h of pendientes) {
+        try {
+          await ejecutarPerdonar(h, motivo);
+          ok++;
+        } catch (e) {
+          err++;
+          console.warn('Aprobación masiva:', h.uid, h.pid, e);
+        }
+      }
+      await registrarAccion('perdonar_tarde_masivo', {
+        pid: opts.pid || '',
+        partido: partidoLabel,
+        motivo,
+        detalle: `Aprobación masiva: ${ok} OK${err ? `, ${err} error(es)` : ''}. Motivo: ${motivo}`
+      });
+      U.toast(`${ok} pronóstico(s) aprobados${err ? ` (${err} no se pudieron)` : ''}.`);
+      pintarPron();
+      pintarAprobaciones().catch(() => {});
+      actualizarBadgeAprobaciones();
+      if (typeof pintarColaRevision === 'function') pintarColaRevision();
+    } catch (err) { U.toast(err.message, 'error'); }
+  }
+
+  function dedupeHistorial(historial) {
+    const map = new Map();
+    historial.forEach(h => {
+      const key = `${h.uid}__${h.pid}`;
+      const prev = map.get(key);
+      if (!prev || (h.t || 0) > (prev.t || 0)) map.set(key, h);
+    });
+    return [...map.values()].sort((a, b) => (b.t || 0) - (a.t || 0));
+  }
+
+  /* Un caso por participante + cruce real (evita ko-76 y ko-78 duplicados). */
+  function dedupeHistorialTarde(historial, todasHist, rechazadas = null) {
+    const map = new Map();
+    historial.forEach(h => {
+      const pe = Puntos.conAjustes(FIXTURE.porId(h.pid) || {}, ajustes);
+      const clave = `${h.uid}__${U.clavePartidoDuplicado(pe)}`;
+      const row = { ...h, ...estadoHistorialPron(h, todasHist, rechazadas) };
+      if (!row.tarde || row.rechazado) return;
+      const marcador = ultimoMarcadorHistorial(historial, h.uid, h.pid);
+      if ((row.gl == null || row.gv == null) && marcador) {
+        row.gl = marcador.gl;
+        row.gv = marcador.gv;
+        row.predActual = { ...(row.predActual || {}), gl: marcador.gl, gv: marcador.gv, t: row.predActual?.t || marcador.t };
+      }
+      const prev = map.get(clave);
+      const score = r => (r.predActual?.t || r.t || 0) + (r.detalle ? 1000 : 0);
+      if (!prev || score(row) >= score(prev)) map.set(clave, row);
+    });
+    return [...map.values()].sort((a, b) => (b.minTarde || 0) - (a.minTarde || 0) || (b.t || 0) - (a.t || 0));
+  }
+
+  /* Casos ya resueltos (aprobados o rechazados) que fueron fuera de hora. */
+  function dedupeHistorialTardeResueltos(historial, todasHist, rechazadas = null) {
+    const map = new Map();
+    historial.forEach(h => {
+      const pe = Puntos.conAjustes(FIXTURE.porId(h.pid) || {}, ajustes);
+      const clave = `${h.uid}__${U.clavePartidoDuplicado(pe)}`;
+      const row = { ...h, ...estadoHistorialPron(h, todasHist, rechazadas) };
+      if (!row.perdonado && !row.rechazado) return;
+      if (!row.staleMarcado && !h.fueraDeTiempo && !row.perdonado) return;
+      const prev = map.get(clave);
+      const score = r => (r.predActual?.t || r.t || 0) + (r.perdonado ? 2000 : 1000);
+      if (!prev || score(row) >= score(prev)) map.set(clave, row);
+    });
+    return [...map.values()].sort((a, b) => (b.t || 0) - (a.t || 0));
+  }
+
+  const ETIQUETAS_ACCION = {
+    crear: '📝 Creó',
+    editar: '✏️ Editó',
+    eliminar: '🗑 Eliminó',
+    admin_editar: '✏️ Admin editó',
+    admin_eliminar: '🗑 Admin eliminó',
+    admin_aprobar: '✅ Admin aprobó',
+    tarde: '⏰ Tarde',
+    perdonar_tarde: '✅ Aprobó tarde',
+    perdonar_tarde_masivo: '✅ OK masivo',
+    eliminar_pronostico: '🗑 Eliminó pronóstico',
+    admin_rechazar: '✕ Rechazó (no suma)',
+    rechazar_tarde: '✕ Rechazó',
+    aprobar_tarde: '✓ Aprobó pendiente',
+    editar_pronostico: '✏️ Editó pronóstico',
+    recalcular_hora: '🔄 Recalculó hora'
+  };
+
+  function accionHistorial(h) {
+    if (h.accion) return h.accion;
+    if (h.gl == null && h.gv == null && h.glPrev != null) return 'eliminar';
+    if (h.glPrev != null && h.glPrev !== undefined) return 'editar';
+    if (h.fueraDeTiempo) return 'tarde';
+    return 'crear';
+  }
+
+  function construirAuditoriaCompleta(historial, registro) {
+    const evHist = historial.map(h => {
+      const acc = accionHistorial(h);
+      return {
+        t: h.t,
+        actor: h.adminNombre ? `${h.adminNombre} (admin)` : (h.nombre || h.uid),
+        accion: acc,
+        uid: h.uid,
+        nombre: h.nombre,
+        pid: h.pid,
+        gl: h.gl,
+        gv: h.gv,
+        glPrev: h.glPrev,
+        gvPrev: h.gvPrev,
+        detalle: [h.motivoPerdon, h.motivo, typeof h.detalle === 'object' ? h.detalle?.texto : h.detalle].filter(Boolean).join(' · '),
+        fuente: 'historial'
+      };
+    });
+    const evReg = registro.map(r => ({
+      t: r.t,
+      actor: r.adminNombre || r.adminUid || 'Admin',
+      accion: r.accion,
+      uid: r.uid,
+      nombre: r.nombre,
+      pid: r.pid,
+      partido: r.partido,
+      gl: r.gl,
+      gv: r.gv,
+      detalle: [r.motivo, r.detalle].filter(Boolean).join(' · '),
+      fuente: 'registro'
+    }));
+    return [...evHist, ...evReg].sort((a, b) => b.t - a.t);
+  }
+
+  async function marcarParticipante(uid, nombreActual, sugerencia = '') {
+    const nueva = prompt(
+      `Etiqueta pública para ${nombreActual || 'participante'} (se verá en la tabla):\nEj: "⚠️ Marcador fuera de hora"`,
+      sugerencia || ''
+    );
+    if (nueva === null) return false;
+    await Store.actualizarUsuario(uid, { marcaTrampa: nueva.trim() || null });
+    U.toast(nueva.trim() ? 'Etiqueta aplicada.' : 'Etiqueta quitada.');
+    return true;
+  }
+
+  function etiquetaPartido(pid) {
+    const pe = Puntos.conAjustes(FIXTURE.porId(pid) || {}, ajustes);
+    const L = pe.local ? FIXTURE.equipo(pe.local) : null;
+    const V = pe.visitante ? FIXTURE.equipo(pe.visitante) : null;
+    return (L && V) ? `${L.n} vs ${V.n}` : pid;
+  }
+
+  async function registrarAccion(tipo, datos) {
+    if (typeof Store.registrarAccionAdmin !== 'function') return;
+    await Store.registrarAccionAdmin({
+      adminUid: yo.uid,
+      adminNombre: yo.nombre,
+      accion: tipo,
+      ...datos
+    });
+  }
+
+  async function notificarParticipante(uid, aviso) {
+    if (typeof Store.notificarUsuario !== 'function') return;
+    await Store.notificarUsuario(uid, aviso);
+  }
+
+  async function ejecutarPerdonar(h, motivo) {
+    const partido = etiquetaPartido(h.pid);
+    const todas = await Store.todasPredicciones();
+    const soloHistorial = !pidsPrediccionUsuario(h.uid, h.pid, todas).length;
+    const ids = pidsParaAccionAdmin(h.uid, h.pid, todas);
+    const pr = h.predActual || {};
+    const gl = Number(pr.gl ?? h.gl);
+    const gv = Number(pr.gv ?? h.gv);
+    const t = pr.t ?? h.t ?? Date.now();
+    if (!Number.isInteger(gl) || !Number.isInteger(gv)) {
+      throw new Error('Marcador inválido en el historial — usa ✏️ editar antes de aprobar.');
+    }
+    for (const id of ids) {
+      await Store.perdonarPrediccion(h.uid, id, { gl, gv, t, motivoPerdon: motivo });
+      if (typeof Store.registrarHistorial === 'function') {
+        await Store.registrarHistorial(h.uid, h.nombre, id, gl, gv, gl, gv, {
+          accion: 'admin_aprobar',
+          adminUid: yo.uid,
+          adminNombre: yo.nombre,
+          motivoPerdon: motivo,
+          perdonadoPorAdmin: true
+        });
+      }
+    }
+    if (typeof Store.marcarHistorialPerdonado === 'function') {
+      for (const id of pidsMismoPartido(h.pid)) {
+        await Store.marcarHistorialPerdonado(h.uid, id, motivo);
+      }
+    }
+    await registrarAccion('perdonar_tarde', {
+      uid: h.uid,
+      nombre: h.nombre,
+      pid: ids[0] || h.pid,
+      partido,
+      gl,
+      gv,
+      minTarde: h.minTarde || 0,
+      motivo,
+      detalle: `Marcador ${gl}–${gv}. Motivo: ${motivo}${soloHistorial ? ' (restaurado desde historial)' : ''}`
+    });
+    await notificarParticipante(h.uid, {
+      tipo: 'aprobado',
+      titulo: '✅ Pronóstico aprobado',
+      texto: `Tu marcador ${gl}–${gv} para ${partido} fue aprobado. Motivo: ${motivo}`
+    });
+  }
+
+  function infoPtsTarde(h) {
+    const pe = Puntos.conAjustes(FIXTURE.porId(h.pid) || {}, ajustes);
+    const pr = h.predActual || { gl: h.gl, gv: h.gv, t: h.t || h.tRef };
+    return Puntos.diagnosticoTarde(pe, pr, resultados, ajustes, {
+      falsoPositivoHora: h.falsoPositivoHora,
+      perdonado: h.perdonado
+    });
+  }
+
+  async function ejecutarRechazar(h, motivo) {
+    const partido = etiquetaPartido(h.pid);
+    const diag = infoPtsTarde(h);
+    const pts = diag?.ptsActuales || diag?.ptsDebidos || 0;
+    const todas = await Store.todasPredicciones();
+    const ids = pidsParaAccionAdmin(h.uid, h.pid, todas);
+    const pr = h.predActual || {};
+    const marcador = (pr.gl != null && pr.gv != null)
+      ? { gl: pr.gl, gv: pr.gv, t: pr.t ?? h.t }
+      : ultimoMarcadorHistorial(
+        typeof Store.historialPredicciones === 'function' ? await Store.historialPredicciones(5000) : [],
+        h.uid,
+        h.pid
+      );
+    const gl = Number(marcador?.gl ?? pr.gl ?? h.gl ?? 0);
+    const gv = Number(marcador?.gv ?? pr.gv ?? h.gv ?? 0);
+    const t = marcador?.t ?? pr.t ?? h.t ?? Date.now();
+    for (const id of ids) {
+      if (typeof Store.rechazarPrediccion === 'function') {
+        await Store.rechazarPrediccion(h.uid, id, { gl, gv, t, motivoRechazo: motivo, ptsDescontados: pts });
+      } else {
+        const existia = !!((todas[h.uid] || {})[id]);
+        if (!existia) continue;
+        await Store.aprobarPrediccion(h.uid, id, false, { motivoRechazo: motivo, ptsDescontados: pts });
+      }
+      if (typeof Store.registrarHistorial === 'function') {
+        await Store.registrarHistorial(h.uid, h.nombre, id, gl, gv, gl, gv, {
+          accion: 'admin_rechazar',
+          adminUid: yo.uid,
+          adminNombre: yo.nombre,
+          motivoRechazo: motivo,
+          ptsDescontados: pts,
+          rechazado: true
+        });
+      }
+    }
+    if (typeof Store.marcarHistorialRechazado === 'function') {
+      for (const id of pidsMismoPartido(h.pid)) {
+        await Store.marcarHistorialRechazado(h.uid, id, motivo);
+      }
+    }
+    const detalleDiag = diag?.linea2 ? ` ${diag.linea2}` : '';
+    await registrarAccion('rechazar_tarde', {
+      uid: h.uid,
+      nombre: h.nombre,
+      pid: ids[0] || h.pid,
+      partido,
+      gl,
+      gv,
+      motivo,
+      ptsDescontados: pts,
+      detalle: pts
+        ? `Rechazado — ${pts} pts no suman. Motivo: ${motivo}.${detalleDiag}`
+        : `Rechazado — no suma. Motivo: ${motivo}.${detalleDiag}`
+    });
+    await notificarParticipante(h.uid, {
+      tipo: 'rechazado',
+      titulo: '❌ Pronóstico no cuenta',
+      texto: `Tu marcador ${gl}–${gv} para ${partido} no suma puntos${pts ? ` (${pts} pts)` : ''}. Motivo: ${motivo}`
+    });
+  }
+
+  async function rechazarTardeAdmin(h) {
+    const partido = etiquetaPartido(h.pid);
+    const diag = infoPtsTarde(h);
+    const motivo = await solicitarMotivoAdmin({ ...h, partido, diag }, 'rechazar');
+    if (!motivo) return;
+    try {
+      await ejecutarRechazar(h, motivo);
+      const pts = diag?.ptsActuales || diag?.ptsDebidos || 0;
+      U.toast(pts ? `Rechazado — ${pts} pts no suman. Motivo guardado.` : 'Rechazado — motivo guardado en el registro.');
+      pintarPron();
+      actualizarBadgeAprobaciones();
+      if (typeof pintarColaRevision === 'function') pintarColaRevision();
+    } catch (err) { U.toast(err.message, 'error'); }
+  }
+
+  function filaTardeParaAccion(h) {
+    const pr = h.predActual || {};
+    return {
+      uid: h.uid,
+      pid: h.pid,
+      nombre: h.nombre || h.uid,
+      gl: pr.gl ?? h.gl,
+      gv: pr.gv ?? h.gv,
+      t: pr.t ?? h.t,
+      predActual: h.predActual,
+      falsoPositivoHora: h.falsoPositivoHora,
+      minTarde: h.minTarde,
+      perdonado: h.perdonado
+    };
+  }
+
+  function botonesTardeAdmin(h) {
+    const key = `${U.esc(h.uid)}|${U.esc(h.pid)}`;
+    if (h.perdonado) {
+      return `<button class="boton boton--rojo boton--mini" type="button" data-rechazar-tarde="${key}" title="Quitar puntos">✕ Quitar</button>`;
+    }
+    return `${botonOkPerdonar(h)}
+      <button class="boton boton--rojo boton--mini" type="button" data-rechazar-tarde="${key}" title="No suma">✕ No</button>`;
+  }
+
+  async function perdonarPrediccionAdmin(h) {
+    const partido = etiquetaPartido(h.pid);
+    const diag = infoPtsTarde(h);
+    const motivo = await solicitarMotivoAdmin({ ...h, partido, diag }, 'aprobar');
+    if (!motivo) return;
+    try {
+      await ejecutarPerdonar(h, motivo);
+      const ptsMsg = diag?.ptsAccion ? ` ${diag.ptsAccion.replace('Aprobar', 'Aprobado —').replace('sumaría', 'suma')}.` : '';
+      U.toast(`${h.nombre || 'Participante'} aprobado.${ptsMsg}`);
+      pintarPron();
+      actualizarBadgeAprobaciones();
+      if (typeof pintarColaRevision === 'function') pintarColaRevision();
+    } catch (err) { U.toast(err.message, 'error'); }
+  }
+
+  async function perdonarTodosPartidoAdmin(pid, filasTarde) {
+    const filas = filasMismoPartido(filasTarde.filter(h => h.tarde && !h.perdonado), pid);
+    if (!filas.length) { U.toast('No hay tardíos para este partido.', 'error'); return; }
+    await perdonarVariosTardeAdmin(filas, {
+      pid,
+      partido: etiquetaPartido(pid),
+      resumenExtra: 'Solo participantes de este partido (filtro activo).'
+    });
+  }
+
+  async function eliminarDesdeHistorial(h) {
+    if (!confirm(`¿Eliminar el pronóstico de ${h.nombre || h.uid}?\n\nEl historial de cambios se conserva para auditoría.`)) return;
+    try {
+      const pe = Puntos.conAjustes(FIXTURE.porId(h.pid) || {}, ajustes);
+      const clave = U.clavePartidoDuplicado(pe);
+      const pidsRelacionados = FIXTURE.partidos
+        .map(p => Puntos.conAjustes(p, ajustes))
+        .filter(p => U.clavePartidoDuplicado(p) === clave)
+        .map(p => p.id);
+      const pids = pidsRelacionados.length ? pidsRelacionados : [h.pid];
+      for (const pid of pids) {
+        await Store.eliminarPrediccion(h.uid, pid);
+        if (typeof Store.registrarHistorial === 'function') {
+          await Store.registrarHistorial(h.uid, h.nombre, pid, null, null, h.gl, h.gv, {
+            accion: 'admin_eliminar',
+            adminUid: yo.uid,
+            adminNombre: yo.nombre
+          });
+        }
+      }
+      await registrarAccion('eliminar_pronostico', {
+        uid: h.uid,
+        nombre: h.nombre,
+        pid: h.pid,
+        partido: etiquetaPartido(h.pid),
+        gl: h.gl,
+        gv: h.gv,
+        detalle: 'Pronóstico eliminado por admin (historial conservado).'
+      });
+      await notificarParticipante(h.uid, {
+        tipo: 'eliminado',
+        titulo: '❌ Pronóstico eliminado',
+        texto: `Tu marcador ${h.gl}–${h.gv} para ${etiquetaPartido(h.pid)} fue eliminado por el admin (fuera de hora o inválido). No suma puntos.`
+      });
+      U.toast('Pronóstico eliminado — quedó registrado en el historial.');
+      pintarPron();
+      actualizarBadgeAprobaciones();
+    } catch (err) { U.toast(err.message, 'error'); }
+  }
+
+  async function editarPrediccionAdmin(uid, pid, nombre, glActual, gvActual) {
+    const gl = prompt(`Marcador local para ${nombre}:`, glActual);
+    if (gl === null) return;
+    const gv = prompt(`Marcador visitante para ${nombre}:`, gvActual);
+    if (gv === null) return;
+    const glN = parseInt(gl, 10), gvN = parseInt(gv, 10);
+    if (isNaN(glN) || isNaN(gvN)) { U.toast('Marcadores inválidos.', 'error'); return; }
+    try {
+      await Store.guardarPrediccionAdmin(uid, pid, glN, gvN, { aprobado: true });
+      if (typeof Store.registrarHistorial === 'function') {
+        await Store.registrarHistorial(uid, nombre, pid, glN, gvN, parseInt(glActual, 10), parseInt(gvActual, 10), {
+          accion: 'admin_editar',
+          adminUid: yo.uid,
+          adminNombre: yo.nombre
+        });
+      }
+      await registrarAccion('editar_pronostico', {
+        uid, nombre, pid, partido: etiquetaPartido(pid),
+        gl: glN, gv: gvN,
+        detalle: `Cambió ${glActual}–${gvActual} → ${glN}–${gvN}.`
+      });
+      U.toast('Pronóstico actualizado.');
+      pintarPron();
+      pintarAprobaciones();
+      actualizarBadgeAprobaciones();
+    } catch (err) { U.toast(err.message, 'error'); }
+  }
+
+  async function abrirModalPartido(pid) {
+    if (!window._usuariosCache?.length) window._usuariosCache = await Store.usuarios();
+    mapNombrePron = mapNombrePron || {};
+    window._usuariosCache.forEach(u => { mapNombrePron[u.uid] = u.nombre; });
+
+    const p = FIXTURE.partidos.map(x => Puntos.conAjustes(x, ajustes)).find(x => x.id === pid);
+    if (!p) return;
+    const pidCanon = U.idSlotKoOficial(p.local, p.visitante) || pid;
+    const pe = Puntos.conAjustes(FIXTURE.porId(pidCanon) || p, ajustes);
+    const res = Puntos._resultadoCanonico(resultados, pe, ajustes) || resultados[pidCanon] || resultados[pid] || {};
+    const L = FIXTURE.equipo(pe.local), V = FIXTURE.equipo(pe.visitante);
+    const estado = U.estadoPartido(pe, res);
+
+    const badgeRes = res.estado === 'finalizado'
+      ? `<span class="etiqueta etiqueta--fin" style="font-size:16px;padding:4px 10px">✅ ${res.gl} – ${res.gv}</span>`
+      : res.estado === 'en_juego'
+      ? `<span class="etiqueta" style="background:var(--rojo);color:#fff;font-size:13px">🔴 En juego ${U.formatMinutoCaja(res)}′</span>`
+      : res.estado === 'aplazado'
+      ? `<span class="etiqueta" style="background:var(--dorado);color:#fff;font-size:13px">⏸️ Aplazado</span>`
+      : estado === 'cerrado'
+      ? `<span class="etiqueta">🔒 Cerrado</span>`
+      : `<span class="etiqueta" style="color:var(--tinta-3)">📅 ${p.utc ? U.horaLocal(p.utc) : 'sin hora'}</span>`;
+
+    document.getElementById('modal-pron-titulo').innerHTML = `
+      <div>
+        <div style="font-size:17px;font-weight:700;margin-bottom:4px">
+          ${L.b} ${U.esc(L.n)} <span style="color:var(--tinta-3);font-weight:400">vs</span> ${U.esc(V.n)} ${V.b}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--tinta-3)">
+          <span>${pe.utc ? U.diaLocal(pe.utc) + ' · ' + U.horaLocal(pe.utc) : 'sin hora'}</span>
+          ${badgeRes}
+        </div>
+      </div>`;
+
+    const preds = Object.keys(todasPreds)
+      .map(uid => {
+        const pMap = todasPreds[uid] || {};
+        const pred = Puntos._predEnPartido(pMap, pe, ajustes, null, resultados);
+        if (!pred || pred.gl == null) return null;
+        let predPid = pidCanon;
+        for (const [slotId, pr] of Object.entries(pMap)) {
+          if (pr === pred) { predPid = slotId; break; }
+        }
+        return { uid, nombre: nombreParticipante(uid, pred), pred, predPid };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+
+    if (!preds.length) {
+      document.getElementById('modal-pron-cuerpo').innerHTML =
+        `<div class="aviso" style="margin:16px">
+          Sin pronósticos visibles para este partido.
+          <p class="sub" style="margin:8px 0 0">Si antes había preds (ej. Costa de Marfil–Noruega), pueden estar en historial o en un slot viejo.</p>
+          <button class="boton boton--verde boton--mini" type="button" id="b-recuperar-partido-modal" style="margin-top:10px">♻️ Recuperar pronósticos de este partido</button>
+        </div>`;
+      document.getElementById('b-recuperar-partido-modal').onclick = async () => {
+        try {
+          U.toast('Recuperando…');
+          const extra = typeof Store.slotsHistorialExtraPartido === 'function'
+            ? await Store.slotsHistorialExtraPartido(pidCanon)
+            : (pidCanon === 'ko-78' ? ['ko-76'] : []);
+          const r = await Store.recuperarPrediccionesPartido(pidCanon, extra);
+          for (const slot of extra) {
+            await Store.corregirOrientacionPredsPartido(pidCanon, { slotOrigen: slot, soloSinCorregir: true });
+          }
+          await Store.enriquecerNombresPredsPartido(pidCanon);
+          todasPreds = await Store.todasPredicciones();
+          U.toast(`Listo: ${r.migrados || 0} migrados, ${r.restaurados || 0} desde historial`);
+          autoPublicarTabla(true);
+          await abrirModalPartido(pidCanon);
+        } catch (err) {
+          U.toast(err.message || 'Error al recuperar', 'error');
+        }
+      };
+    } else {
+      const filas = preds.map(({ uid, nombre, pred, predPid }) => {
+        const peRow = Puntos.conAjustes(p, ajustes);
+        const uInfo = (window._usuariosCache || []).find(u => u.uid === uid);
+        const marcaAdmin = uInfo?.marcaTrampa
+          ? `<span class="etiqueta" style="background:rgba(224,53,75,.25);color:#ffb4bc;font-size:10px;margin-left:4px">${U.esc(uInfo.marcaTrampa)}</span>`
+          : '';
+        const tarde = !pred.perdonadoPorAdmin && U.esTardeRecalculado(peRow, pred.t, pred);
+        const detalleTarde = tarde ? U.detalleTarde(peRow, pred.t) : null;
+        const cal = res.estado === 'finalizado' && U.pronosticoCuenta(pred, peRow) ? Puntos.calificar(pred, res, peRow.fase, peRow) : null;
+        const color = cal
+          ? (cal.tipo === 'exacto' ? 'var(--verde-claro)' : cal.tipo === 'resultado' ? 'var(--dorado)' : cal.tipo === 'pendiente' ? 'var(--tinta-3)' : 'var(--rojo)')
+          : 'var(--tinta)';
+        const icono = cal ? (cal.tipo === 'exacto' ? '🎯' : cal.tipo === 'resultado' ? '✔' : cal.tipo === 'pendiente' ? '⏳' : '❌') : '';
+        const pts = cal && cal.pts > 0 ? `<span style="font-size:11px;color:var(--tinta-3)">+${cal.pts} pts</span>` : '';
+        const alerta = tarde ? '<span class="etiqueta" style="background:rgba(224,53,75,.25);color:#ffb4bc;font-size:10px">TARDE</span>' : '';
+        const okData = { uid, pid: predPid, nombre, gl: pred.gl, gv: pred.gv, t: pred.t, minTarde: detalleTarde?.minTarde || 0 };
+        const horaPred = pred.t
+          ? new Date(pred.t).toLocaleString('es-CO', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+          : 'sin hora';
+        const retrasoPred = tarde && detalleTarde
+          ? `<span style="font-size:10px;color:var(--rojo)">+${detalleTarde.minTarde} min</span>`
+          : '';
+        return `<div class="pron-item"${filaTardeClass(tarde)}>
+          <div style="display:flex;flex-direction:column;min-width:0;gap:2px">
+            <span class="nombre">${U.esc(nombre)}${marcaAdmin} ${alerta}</span>
+            <span class="sub" style="font-size:11px">🕐 ${horaPred} ${retrasoPred}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+            ${pts}
+            <span style="font-size:18px">${icono}</span>
+            <span class="goles" style="color:${color}">${pred.gl} – ${pred.gv}</span>
+            ${tarde ? botonOkPerdonar(okData) : ''}
+            <button class="boton boton--mini boton--fantasma" type="button" data-edit-pred="${U.esc(uid)}|${U.esc(predPid)}|${U.esc(nombre)}|${pred.gl}|${pred.gv}" title="Editar">✏️</button>
+            <button class="boton boton--mini boton--rojo" type="button" data-borrar-pred="${U.esc(uid)}|${U.esc(predPid)}|${U.esc(nombre)}|${pred.gl}|${pred.gv}" title="Eliminar">🗑</button>
+          </div>
+        </div>`;
+      }).join('');
+
+      const resumen = res.estado === 'finalizado'
+        ? (() => {
+            let exactos = 0, resultados_ = 0, fallidos = 0;
+            preds.forEach(({ pred }) => {
+              const c = Puntos.calificar(pred, res, p.fase, p);
+              if (c.tipo === 'exacto') exactos++;
+              else if (c.tipo === 'resultado') resultados_++;
+              else fallidos++;
+            });
+            return `<div style="display:flex;gap:12px;padding:10px 16px;background:rgba(0,0,0,.2);font-size:13px;border-top:1px solid var(--linea)">
+              <span>🎯 ${exactos} exactos</span>
+              <span>✔ ${resultados_} resultado</span>
+              <span>❌ ${fallidos} fallidos</span>
+              <span style="margin-left:auto;color:var(--tinta-3)">${preds.length} jugadores</span>
+            </div>`;
+          })()
+        : `<div style="padding:8px 16px;font-size:12px;color:var(--tinta-3);border-top:1px solid var(--linea)">${preds.length} pronósticos registrados</div>`;
+
+      document.getElementById('modal-pron-cuerpo').innerHTML = filas + resumen;
+    }
+
+    modalPron.onclick = async e => {
+      const btnPerdon = e.target.closest('[data-perdonar-uid]');
+      if (btnPerdon) {
+        await perdonarPrediccionAdmin({
+          uid: btnPerdon.dataset.perdonarUid,
+          pid: btnPerdon.dataset.perdonarPid,
+          nombre: btnPerdon.dataset.perdonarNombre,
+          gl: parseInt(btnPerdon.dataset.perdonarGl, 10),
+          gv: parseInt(btnPerdon.dataset.perdonarGv, 10),
+          t: parseInt(btnPerdon.dataset.perdonarT, 10),
+          minTarde: parseInt(btnPerdon.dataset.perdonarMin, 10) || 0
+        });
+        await abrirModalPartido(pid);
+        return;
+      }
+      const btnEdit = e.target.closest('[data-edit-pred]');
+      if (btnEdit) {
+        const [uid, pid, nombre, gl, gv] = btnEdit.dataset.editPred.split('|');
+        await editarPrediccionAdmin(uid, pid, nombre, gl, gv);
+        await abrirModalPartido(pid);
+        return;
+      }
+      const btnDel = e.target.closest('[data-borrar-pred]');
+      if (btnDel) {
+        const [uid, pid, nombre, gl, gv] = btnDel.dataset.borrarPred.split('|');
+        await eliminarDesdeHistorial({
+          uid, pid, nombre,
+          gl: parseInt(gl, 10),
+          gv: parseInt(gv, 10)
+        });
+        await abrirModalPartido(pid);
+        return;
+      }
+    };
+
+    modalPron.classList.add('activo');
+  }
+
+  async function pintarAprobaciones() {
+    const lista = document.getElementById('lista-aprobaciones');
+    if (!lista) return;
+    lista.innerHTML = '<div class="aviso">Cargando…</div>';
+    const [pendientes, usuarios] = await Promise.all([
+      Store.prediccionesPendientes?.() || [],
+      Store.usuarios()
+    ]);
+    const nombres = {};
+    usuarios.forEach(u => { nombres[u.uid] = u.nombre; });
+    if (!pendientes.length) {
+      lista.innerHTML = '<div class="aviso aviso--dorado">✅ No hay pronósticos pendientes de aprobación.</div>';
+      document.getElementById('b-aprob-todos')?.classList.add('oculto');
+      return;
+    }
+    const btnTodos = document.getElementById('b-aprob-todos');
+    if (btnTodos) {
+      btnTodos.classList.remove('oculto');
+      btnTodos.textContent = `✓ Aceptar todos (${pendientes.length})`;
+      btnTodos.onclick = async () => {
+        await perdonarVariosTardeAdmin(pendientes.map(pr => ({
+          uid: pr.uid,
+          pid: pr.pid,
+          nombre: nombres[pr.uid] || pr.uid,
+          gl: pr.gl,
+          gv: pr.gv,
+          t: pr.t,
+          predActual: pr,
+          tarde: true,
+          perdonado: false
+        })), {
+          partido: `${pendientes.length} pendiente(s) de aprobación`,
+          incluirPendientes: true,
+          resumenExtra: 'Pestaña Aprobaciones — todos los casos visibles.'
+        });
+        pintarAprobaciones();
+      };
+    }
+    lista.innerHTML = `
+      <div class="tabla-envoltura">
+        <table class="tabla">
+          <thead><tr><th>Participante</th><th>Partido</th><th>Marcador</th><th>Fecha</th><th></th></tr></thead>
+          <tbody>${pendientes.map(pr => {
+            const pe = Puntos.conAjustes(FIXTURE.porId(pr.pid) || {}, ajustes);
+            const L = pe.local ? FIXTURE.equipo(pe.local) : null;
+            const V = pe.visitante ? FIXTURE.equipo(pe.visitante) : null;
+            const partido = (L && V) ? `${L.n} vs ${V.n}` : pr.pid;
+            return `<tr style="background:rgba(224,53,75,.12)">
+              <td><b>${U.esc(nombres[pr.uid] || pr.uid)}</b></td>
+              <td>${U.esc(partido)}</td>
+              <td class="num" style="font-weight:900">${pr.gl} – ${pr.gv}</td>
+              <td class="sub">${new Date(pr.t).toLocaleString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</td>
+              <td style="white-space:nowrap">
+                ${botonOkPerdonar({ uid: pr.uid, pid: pr.pid, nombre: nombres[pr.uid] || pr.uid, gl: pr.gl, gv: pr.gv, t: pr.t, minTarde: 0 })}
+                <button class="boton boton--rojo boton--mini" type="button" data-rechazar="${U.esc(pr.uid)}|${U.esc(pr.pid)}" title="Rechazar">✕</button>
+                <button class="boton boton--fantasma boton--mini" type="button" data-edit-aprob="${U.esc(pr.uid)}|${U.esc(pr.pid)}|${U.esc(nombres[pr.uid]||'')} |${pr.gl}|${pr.gv}">✏️</button>
+              </td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>`;
+    lista.onclick = async e => {
+      const btnPerdon = e.target.closest('[data-perdonar-uid]');
+      if (btnPerdon) {
+        await perdonarPrediccionAdmin({
+          uid: btnPerdon.dataset.perdonarUid,
+          pid: btnPerdon.dataset.perdonarPid,
+          nombre: btnPerdon.dataset.perdonarNombre,
+          gl: parseInt(btnPerdon.dataset.perdonarGl, 10),
+          gv: parseInt(btnPerdon.dataset.perdonarGv, 10),
+          t: parseInt(btnPerdon.dataset.perdonarT, 10),
+          minTarde: 0
+        });
+        pintarAprobaciones();
+        return;
+      }
+      const btnR = e.target.closest('[data-rechazar]');
+      const btnE = e.target.closest('[data-edit-aprob]');
+      if (btnR) {
+        const [uid, pid] = btnR.dataset.rechazar.split('|');
+        const pr = pendientes.find(x => x.uid === uid && x.pid === pid);
+        await rechazarTardeAdmin({
+          uid, pid,
+          nombre: nombres[uid] || uid,
+          gl: pr?.gl ?? 0,
+          gv: pr?.gv ?? 0,
+          t: pr?.t
+        });
+        pintarAprobaciones();
+      } else if (btnE) {
+        const parts = btnE.dataset.editAprob.split('|');
+        await editarPrediccionAdmin(parts[0], parts[1], parts[2], parts[3], parts[4]);
+        pintarAprobaciones();
+      }
+    };
+  }
+
+  async function pintarPron() {
+    const desc = document.getElementById('desc-pron');
+    const lista = document.getElementById('lista-pron');
+    lista.innerHTML = '<div class="aviso">Cargando…</div>';
+
+    try {
+      window._usuariosCache = window._usuariosCache || await Store.usuarios();
+      const nTarde = await contarPronosticosTarde();
+      await actualizarBadgeTarde(nTarde);
+
+      if (subPron === 'todos') {
+        document.getElementById('filtros-pron-historial').style.display = 'none';
+        desc.textContent = nTarde
+          ? `Haz clic en un partido para ver pronósticos (✓ OK en tardíos). Hay ${nTarde} fuera de hora → pestaña 🕵️ Fuera de hora.`
+          : 'Haz clic en un partido para ver los pronósticos de todos los participantes.';
+        const [todas, usuarios] = await Promise.all([Store.todasPredicciones(), Store.usuarios()]);
+        todasPreds = todas;
+        mapNombrePron = {};
+        usuarios.forEach(u => { mapNombrePron[u.uid] = u.nombre; });
+
+        const partidos = U.dedupePartidos(
+          FIXTURE.partidos
+            .map(p => Puntos.conAjustes(p, ajustes))
+            .filter(p => p.local && p.visitante && p.local !== 'Por definir' && p.visitante !== 'Por definir')
+            .filter(p => !(p.fase === 'eliminatorias' && p.ronda !== '16avos'
+              && U.esParejaFaseGrupos(p.local, p.visitante)
+              && !U.idSlotKoOficial(p.local, p.visitante))),
+          { resultados }
+        ).sort((a, b) => (a.utc || '9').localeCompare(b.utc || '9'));
+
+        const tarjetas = partidos.map(p => {
+          const res = resultados[p.id] || {};
+          const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+          const estado = U.estadoPartido(p, res);
+          const totalPreds = Object.values(todas).filter(pMap => pMap[p.id]).length;
+
+          const badgeEstado = res.estado === 'finalizado'
+            ? `<span class="etiqueta etiqueta--fin">✅ ${res.gl}–${res.gv}</span>`
+            : res.estado === 'en_juego'
+            ? `<span class="etiqueta" style="background:var(--rojo);color:#fff">🔴 Vivo</span>`
+            : res.estado === 'aplazado'
+            ? `<span class="etiqueta" style="background:var(--dorado);color:#fff">⏸️ Aplazado</span>`
+            : estado === 'cerrado'
+            ? `<span class="etiqueta">🔒</span>`
+            : `<span class="etiqueta" style="color:var(--tinta-3);background:transparent;border-color:rgba(255,255,255,.1)">${p.utc ? U.horaLocal(p.utc) : '?'}</span>`;
+
+          return `
+            <div data-abrir-pid="${p.id}" style="cursor:pointer;border:1px solid var(--linea);border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;background:var(--superficie);transition:background .15s" onmouseover="this.style.background='var(--superficie-2)'" onmouseout="this.style.background='var(--superficie)'">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+                  ${L.b} ${U.esc(L.n)} <span style="color:var(--tinta-3);font-weight:400">vs</span> ${U.esc(V.n)} ${V.b}
+                </div>
+                <div style="font-size:12px;color:var(--tinta-3);margin-top:3px">${p.utc ? U.diaLocal(p.utc) : 'sin fecha'} · <span class="etiqueta" style="font-size:10px">${U.esc(p.etapa)}</span></div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+                ${badgeEstado}
+                <span style="font-size:11px;color:var(--tinta-3)">${totalPreds} pronósticos</span>
+              </div>
+              <span style="color:var(--tinta-3);font-size:18px">›</span>
+            </div>`;
+        });
+
+        lista.innerHTML = `<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">${tarjetas.join('')}</div>`;
+
+        lista.addEventListener('click', e => {
+          const card = e.target.closest('[data-abrir-pid]');
+          if (card) abrirModalPartido(card.dataset.abrirPid);
+        }, { once: true });
+        // Re-bind after each re-render
+        lista.onclick = e => {
+          const card = e.target.closest('[data-abrir-pid]');
+          if (card) abrirModalPartido(card.dataset.abrirPid);
+        };
+
+      } else if (subPron === 'historial' || subPron === 'tarde') {
+        document.getElementById('filtros-pron-historial').style.display = 'flex';
+        const historial = typeof Store.historialPredicciones === 'function'
+          ? await Store.historialPredicciones(5000) : [];
+        const todasHist = await Store.todasPredicciones();
+        const registro = typeof Store.registroAdmin === 'function' ? await Store.registroAdmin() : [];
+        const rechazadas = clavesRechazadasAdmin(historial, registro, todasHist);
+        const usuarios = window._usuariosCache || await Store.usuarios();
+        const selPersona = document.getElementById('filtro-hist-persona');
+        const selPartido = document.getElementById('filtro-hist-partido');
+        const selFecha = document.getElementById('filtro-hist-fecha');
+        if (!selPersona.dataset.listo) {
+          selPersona.innerHTML = '<option value="">Todos los participantes</option>'
+            + usuarios.map(u => `<option value="${u.uid}">${U.esc(u.nombre)}</option>`).join('');
+          selPartido.innerHTML = '<option value="">Todos los partidos</option>'
+            + partidosEf().filter(p => p.local && p.visitante && p.local !== 'Por definir').map(p => {
+              const L = FIXTURE.equipo(p.local), V = FIXTURE.equipo(p.visitante);
+              return `<option value="${p.id}">${U.esc(L.n)} vs ${U.esc(V.n)}</option>`;
+            }).join('');
+          selPersona.dataset.listo = '1';
+          const selAccion = document.getElementById('filtro-hist-accion');
+          selPersona.onchange = selPartido.onchange = selFecha.onchange = selAccion.onchange = () => pintarPron();
+        }
+        const fechasUnicas = [...new Set(historial.map(h => U.fechaColombia(new Date(h.t))))].sort().reverse();
+        const fFechaPrev = selFecha.value;
+        selFecha.innerHTML = '<option value="">Todas las fechas</option>'
+          + fechasUnicas.map(f => `<option value="${f}">${f}</option>`).join('');
+        if (fFechaPrev && fechasUnicas.includes(fFechaPrev)) selFecha.value = fFechaPrev;
+        const fUid = selPersona.value, fPid = selPartido.value, fFecha = selFecha.value;
+        const fAccion = document.getElementById('filtro-hist-accion').value;
+        desc.textContent = subPron === 'tarde'
+          ? 'Pronósticos fuera de hora. Lee el diagnóstico → ✓ Permitir suma pts si acertó · ✕ No cuenta los quita.'
+          : `Todos los cambios de pronósticos (${historial.length} eventos). Creaciones, ediciones y eliminaciones — sin ocultar nada.`;
+        let filtrado = (subPron === 'tarde'
+          ? dedupeHistorialTarde(historial, todasHist, rechazadas)
+          : historial.map(h => ({ ...h, accion: accionHistorial(h) }))
+        );
+        let resueltosTarde = [];
+        if (subPron === 'tarde') {
+          filtrado = filtrado.filter(h => h.tarde && !h.rechazado);
+          resueltosTarde = dedupeHistorialTardeResueltos(historial, todasHist, rechazadas);
+        }
+        if (fAccion) filtrado = filtrado.filter(h => accionHistorial(h) === fAccion || h.accion === fAccion);
+        if (fUid) {
+          filtrado = filtrado.filter(h => h.uid === fUid);
+          resueltosTarde = resueltosTarde.filter(h => h.uid === fUid);
+        }
+        if (fPid) {
+          const pidsF = pidsMismoPartido(fPid);
+          const claveF = U.clavePartidoDuplicado(Puntos.conAjustes(FIXTURE.porId(fPid) || {}, ajustes));
+          const matchPid = h => pidsF.includes(h.pid)
+            || U.clavePartidoDuplicado(Puntos.conAjustes(FIXTURE.porId(h.pid) || {}, ajustes)) === claveF;
+          filtrado = filtrado.filter(matchPid);
+          resueltosTarde = resueltosTarde.filter(matchPid);
+        }
+        if (fFecha) {
+          filtrado = filtrado.filter(h => U.fechaColombia(new Date(h.t)) === fFecha);
+          resueltosTarde = resueltosTarde.filter(h => U.fechaColombia(new Date(h.t)) === fFecha);
+        }
+
+        const btnRecalc = document.getElementById('b-recalc-tarde-partido');
+        const btnOkMasivo = document.getElementById('b-ok-masivo-api');
+        const btnOkTodos = document.getElementById('b-ok-todos-tarde');
+        const pendientesTarde = filtrado.filter(h => h.tarde && !h.perdonado && !h.rechazado);
+        if (subPron === 'tarde') {
+          btnRecalc.classList.remove('oculto');
+          btnOkMasivo.classList.toggle('oculto', !fPid);
+          btnOkTodos.classList.toggle('oculto', !pendientesTarde.length);
+          if (pendientesTarde.length) {
+            btnOkTodos.textContent = `✓ Aceptar todos (${pendientesTarde.length})`;
+          }
+          btnOkTodos.onclick = async () => {
+            await perdonarVariosTardeAdmin(pendientesTarde, {
+              partido: fPid ? etiquetaPartido(fPid) : 'Listado filtrado',
+              pid: fPid || '',
+              resumenExtra: fPid
+                ? 'Solo el partido seleccionado en el filtro.'
+                : `Todos los tardíos visibles con los filtros actuales (${pendientesTarde.length}).`
+            });
+          };
+          btnRecalc.onclick = async () => {
+            if (!fPid) { U.toast('Selecciona un partido en el filtro.', 'error'); return; }
+            const res = await recalcularTardiosDesdeAdmin(fPid);
+            if (!res) return;
+            U.toast(res.corregidos
+              ? `🔄 ${res.corregidos} corregido(s) con la hora actual del partido.`
+              : 'Sin cambios — revisa la hora en 📅 Calendario.');
+            pintarPron();
+          };
+          btnOkMasivo.onclick = async () => {
+            if (!fPid) return;
+            await perdonarTodosPartidoAdmin(fPid, filtrado.length ? filtrado : dedupeHistorial(historial).map(h => ({
+              ...h, ...estadoHistorialPron(h, todasHist)
+            })).filter(h => h.tarde));
+          };
+        } else {
+          btnRecalc.classList.add('oculto');
+          btnOkMasivo.classList.add('oculto');
+          btnOkTodos?.classList.add('oculto');
+        }
+
+        const nFalsosPositivos = filtrado.filter(h => h.falsoPositivoHora).length;
+        filtrado.sort((a, b) => {
+          if (a.tarde !== b.tarde) return a.tarde ? -1 : 1;
+          if (a.tarde && b.tarde) return b.minTarde - a.minTarde || b.t - a.t;
+          return b.t - a.t;
+        });
+        if (!filtrado.length && !(subPron === 'tarde' && resueltosTarde.length)) {
+          lista.innerHTML = '<div class="aviso">Sin registros con este filtro.</div>';
+          return;
+        }
+        const contador = subPron === 'historial'
+          ? `<p class="sub" style="margin:0 0 8px">Mostrando ${filtrado.length} de ${historial.length} eventos</p>`
+          : '';
+        const avisoHoraApi = (subPron === 'tarde' && nFalsosPositivos)
+          ? `<div class="aviso aviso--dorado" style="margin-bottom:10px;font-size:12px">⚠️ ${nFalsosPositivos} caso(s): con la hora actual del partido <b>ya no serían tarde</b> — 📅 Calendario o 🔄 Recalcular.</div>`
+          : '';
+
+        if (subPron === 'tarde') {
+          const filaTardeHtml = (h, { compacto = false } = {}) => {
+            const pe = h.pe || Puntos.conAjustes(FIXTURE.porId(h.pid) || {}, ajustes);
+            const L = pe.local ? FIXTURE.equipo(pe.local) : null;
+            const V = pe.visitante ? FIXTURE.equipo(pe.visitante) : null;
+            const partido = (L && V) ? `${U.esc(L.n)} vs ${U.esc(V.n)}` : U.esc(h.pid);
+            const horaP = pe.utc ? `${U.diaLocal(pe.utc)} ${U.horaLocal(pe.utc)}` : (pe.fecha || '');
+            const pr = { gl: h.gl, gv: h.gv, t: h.t, ...(h.predActual || {}) };
+            const predTxt = pr.gl != null && pr.gv != null ? `${pr.gl}–${pr.gv}` : `${h.gl}–${h.gv}`;
+            const diag = compacto ? null : Puntos.diagnosticoTarde(pe, pr, resultados, ajustes, {
+              falsoPositivoHora: h.falsoPositivoHora,
+              perdonado: h.perdonado,
+              forzar: true
+            });
+            const estadoHtml = h.perdonado
+              ? '<span class="etiqueta" style="background:rgba(46,204,113,.2);color:#7dffb0">✓ Aprobado</span>'
+              : '<span class="etiqueta" style="background:rgba(224,53,75,.25);color:#ffb4bc">✕ Rechazado</span>';
+            const diagHtml = compacto
+              ? estadoHtml
+              : (diag
+                ? `<div style="font-size:11px;line-height:1.45;max-width:320px">
+                    <span class="sub">${U.esc(diag.linea1)}</span><br>
+                    <span style="color:var(--rojo)">${U.esc(diag.linea2)}</span>
+                    ${diag.aviso ? `<br><span style="color:var(--dorado);font-size:10px">${U.esc(diag.aviso)}</span>` : ''}
+                  </div>`
+                : '<span class="sub">—</span>');
+            const ptsHtml = diag
+              ? `<span style="font-size:12px;font-weight:700">${U.esc(diag.ptsLabel)}</span>${diag.ptsAccion ? `<br><span class="sub" style="font-size:10px">${U.esc(diag.ptsAccion)}</span>` : ''}`
+              : (h.perdonado ? '<span class="sub">Sumando</span>' : '<span class="sub">No cuenta</span>');
+            const bg = h.perdonado ? 'rgba(255,193,7,.06)' : 'rgba(224,53,75,.06)';
+            return `<tr style="background:${bg}">
+              <td style="font-size:12px"><b>${U.esc(h.nombre || h.uid)}</b></td>
+              <td style="font-size:11px">${partido}<br><span class="sub">${U.esc(horaP)}</span></td>
+              <td class="num" style="font-size:13px">${predTxt}</td>
+              <td>${diagHtml}</td>
+              <td class="num">${ptsHtml}</td>
+              <td style="white-space:nowrap">${compacto ? estadoHtml : `${botonesTardeAdmin(h)}
+                <button class="boton boton--fantasma boton--mini" type="button" data-edit-hist="${U.esc(h.uid)}|${U.esc(h.pid)}|${U.esc(h.nombre||'')} |${h.gl}|${h.gv}" title="Editar">✏️</button>`}
+              </td>
+            </tr>`;
+          };
+          const bloquePendientes = filtrado.length
+            ? `<div class="tabla-envoltura">
+                <table class="tabla tabla--compacta">
+                  <thead><tr>
+                    <th>Participante</th><th>Partido</th><th>Pred</th><th>Diagnóstico</th><th>Pts</th><th>Decisión</th>
+                  </tr></thead>
+                  <tbody>${filtrado.map(h => filaTardeHtml(h)).join('')}</tbody>
+                </table>
+              </div>`
+            : '<div class="aviso" style="color:var(--verde-claro);margin-bottom:12px">✔ No hay casos pendientes de decisión.</div>';
+          const bloqueAnteriores = resueltosTarde.length
+            ? `<details class="fin-colapsable" style="margin-top:14px">
+                <summary class="fin-colapsable__sum">📁 Anteriores resueltos (${resueltosTarde.length}) — ya aprobados o rechazados</summary>
+                <div class="fin-colapsable__lista">
+                  <table class="tabla tabla--compacta">
+                    <thead><tr>
+                      <th>Participante</th><th>Partido</th><th>Pred</th><th>Estado</th><th>Pts</th><th></th>
+                    </tr></thead>
+                    <tbody>${resueltosTarde.map(h => filaTardeHtml(h, { compacto: true })).join('')}</tbody>
+                  </table>
+                </div>
+              </details>`
+            : '';
+          lista.innerHTML = `${avisoHoraApi}${bloquePendientes}${bloqueAnteriores}`;
+        } else {
+        lista.innerHTML = `${contador}${avisoHoraApi}
+          <div class="tabla-envoltura">
+            <table class="tabla">
+              <thead><tr><th>Fecha</th><th>Acción</th><th>Participante</th><th>Partido / hora</th><th>Nuevo</th><th>Anterior</th><th>Retraso</th><th>Estado</th><th></th></tr></thead>
+              <tbody>${filtrado.map(h => {
+                const pe = Puntos.conAjustes(FIXTURE.porId(h.pid) || {}, ajustes);
+                const L = pe.local ? FIXTURE.equipo(pe.local) : null;
+                const V = pe.visitante ? FIXTURE.equipo(pe.visitante) : null;
+                const partido = (L && V) ? `${U.esc(L.n)} vs ${U.esc(V.n)}` : U.esc(h.pid);
+                const acc = accionHistorial(h);
+                const esEliminado = acc === 'eliminar' || acc === 'admin_eliminar';
+                const esEdicion = h.glPrev !== null && h.glPrev !== undefined;
+                const alerta = esEliminado
+                  ? '<span class="etiqueta" style="background:rgba(224,53,75,.3);color:#ffb4bc">Eliminado</span>'
+                  : h.perdonado
+                  ? `<span class="etiqueta etiqueta--fin">Perdonado</span>${h.motivoPerdon ? `<br><span class="sub" style="font-size:11px;max-width:180px;display:inline-block">${U.esc(h.motivoPerdon)}</span>` : ''}`
+                  : h.tarde
+                  ? `<span class="etiqueta" style="background:rgba(224,53,75,.25);color:#ffb4bc">Tarde</span>${h.falsoPositivoHora ? '<br><span class="etiqueta" style="font-size:10px;background:rgba(212,160,23,.2);color:var(--dorado)">Hora API antigua</span>' : ''}`
+                  : '<span class="etiqueta etiqueta--fin">OK</span>';
+                const retraso = h.tarde
+                  ? `<span class="num" style="color:var(--rojo);font-weight:900">${h.minTarde} min</span>`
+                  : h.perdonado ? '—' : '<span class="sub">—</span>';
+                return `<tr${filaTardeClass(h.tarde && !h.perdonado && !esEliminado)}${esEliminado ? ' style="opacity:.75"' : ''}>
+                  <td class="sub" style="white-space:nowrap">${new Date(h.t).toLocaleString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</td>
+                  <td style="font-size:11px;white-space:nowrap">${U.esc(ETIQUETAS_ACCION[acc] || acc)}${h.adminNombre ? `<br><span class="sub">${U.esc(h.adminNombre)}</span>` : ''}</td>
+                  <td><b>${U.esc(h.nombre || h.uid || '—')}</b></td>
+                  <td style="font-size:13px">${partido}<br><span class="sub">${U.esc(pe.utc ? U.diaLocal(pe.utc)+' · '+U.horaLocal(pe.utc) : pe.fecha || '')}</span>${h.detalle ? `<br><span style="font-size:10px;color:var(--rojo)">${U.esc(typeof h.detalle === 'object' ? h.detalle.texto : h.detalle)}</span>` : ''}${h.motivoPerdon ? `<br><span class="sub" style="font-size:10px">${U.esc(h.motivoPerdon)}</span>` : ''}</td>
+                  <td class="num" style="font-weight:900">${esEliminado ? '—' : `${h.gl} – ${h.gv}`}</td>
+                  <td class="num sub">${esEdicion || esEliminado ? `${h.glPrev} – ${h.gvPrev}` : '—'}</td>
+                  <td class="num">${retraso}</td>
+                  <td>${alerta}</td>
+                  <td style="white-space:nowrap">
+                    ${(subPron === 'tarde' || h.tarde) && !esEliminado ? botonOkPerdonar(h) : ''}
+                    ${subPron === 'historial' && !esEliminado ? `<button class="boton boton--fantasma boton--mini" type="button" data-edit-hist="${U.esc(h.uid)}|${U.esc(h.pid)}|${U.esc(h.nombre||'')} |${h.gl}|${h.gv}">✏️</button>` : subPron === 'tarde' ? `<button class="boton boton--fantasma boton--mini" type="button" data-edit-hist="${U.esc(h.uid)}|${U.esc(h.pid)}|${U.esc(h.nombre||'')} |${h.gl}|${h.gv}">✏️</button>` : ''}
+                    ${!esEliminado ? `<button class="boton boton--rojo boton--mini" type="button" data-borrar-uid="${U.esc(h.uid)}" data-borrar-pid="${U.esc(h.pid)}" data-borrar-nombre="${U.esc(h.nombre || h.uid || '')}" data-borrar-gl="${h.gl}" data-borrar-gv="${h.gv}" title="Eliminar pronóstico">🗑</button>` : ''}
+                  </td>
+                </tr>`;
+              }).join('')}</tbody>
+            </table>
+          </div>`;
+        }
+        lista.onclick = async e => {
+          const btnRech = e.target.closest('[data-rechazar-tarde]');
+          if (btnRech) {
+            const [uid, pid] = btnRech.dataset.rechazarTarde.split('|');
+            const row = filtrado.find(x => x.uid === uid && (x.pid === pid || pidsMismoPartido(pid).includes(x.pid)));
+            if (row) await rechazarTardeAdmin(filaTardeParaAccion(row));
+            return;
+          }
+          const btnPerdon = e.target.closest('[data-perdonar-uid]');
+          if (btnPerdon) {
+            const uid = btnPerdon.dataset.perdonarUid;
+            const pid = btnPerdon.dataset.perdonarPid;
+            const row = filtrado.find(x => x.uid === uid && (x.pid === pid || pidsMismoPartido(pid).includes(x.pid)));
+            await perdonarPrediccionAdmin(row ? filaTardeParaAccion(row) : {
+              uid,
+              pid,
+              nombre: btnPerdon.dataset.perdonarNombre,
+              gl: parseInt(btnPerdon.dataset.perdonarGl, 10),
+              gv: parseInt(btnPerdon.dataset.perdonarGv, 10),
+              t: parseInt(btnPerdon.dataset.perdonarT, 10),
+              minTarde: parseInt(btnPerdon.dataset.perdonarMin, 10) || 0
+            });
+            return;
+          }
+          const btnEdit = e.target.closest('[data-edit-hist]');
+          if (btnEdit) {
+            const parts = btnEdit.dataset.editHist.split('|');
+            await editarPrediccionAdmin(parts[0], parts[1], parts[2], parts[3], parts[4]);
+            pintarPron();
+            return;
+          }
+          const btn = e.target.closest('[data-borrar-uid]');
+          if (btn) {
+            await eliminarDesdeHistorial({
+              uid: btn.dataset.borrarUid,
+              pid: btn.dataset.borrarPid,
+              nombre: btn.dataset.borrarNombre,
+              gl: parseInt(btn.dataset.borrarGl, 10),
+              gv: parseInt(btn.dataset.borrarGv, 10)
+            });
+          }
+        };
+
+      } else if (subPron === 'registro') {
+        document.getElementById('filtros-pron-historial').style.display = 'none';
+        desc.textContent = 'Bitácora completa: creaciones, ediciones, eliminaciones y acciones del admin. Nada se borra — para reclamos.';
+        const [historial, registro] = await Promise.all([
+          typeof Store.historialPredicciones === 'function' ? Store.historialPredicciones(5000) : [],
+          typeof Store.registroAdmin === 'function' ? Store.registroAdmin() : []
+        ]);
+        const auditoria = construirAuditoriaCompleta(historial, registro);
+        if (!auditoria.length) {
+          lista.innerHTML = '<div class="aviso">Sin eventos registrados todavía.</div>';
+          return;
+        }
+        lista.innerHTML = `
+          <p class="sub" style="margin:0 0 8px">${auditoria.length} eventos (${historial.length} historial + ${registro.length} admin)</p>
+          <div class="tabla-envoltura">
+            <table class="tabla">
+              <thead><tr><th>Fecha</th><th>Quién</th><th>Acción</th><th>Participante</th><th>Partido / marcador</th><th>Detalle</th></tr></thead>
+              <tbody>${auditoria.map(ev => {
+                const pe = ev.pid ? Puntos.conAjustes(FIXTURE.porId(ev.pid) || {}, ajustes) : null;
+                const L = pe?.local ? FIXTURE.equipo(pe.local) : null;
+                const V = pe?.visitante ? FIXTURE.equipo(pe.visitante) : null;
+                const partidoTxt = ev.partido || ((L && V) ? `${L.n} vs ${V.n}` : (ev.pid || '—'));
+                const esElim = ev.accion === 'eliminar' || ev.accion === 'admin_eliminar';
+                const marcador = esElim
+                  ? (ev.glPrev != null ? `— (era ${ev.glPrev}–${ev.gvPrev})` : '—')
+                  : (ev.gl != null ? `${ev.gl}–${ev.gv}${ev.glPrev != null ? ` (antes ${ev.glPrev}–${ev.gvPrev})` : ''}` : '');
+                return `<tr${esElim ? ' style="opacity:.8"' : ''}>
+                  <td class="sub" style="white-space:nowrap">${new Date(ev.t).toLocaleString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</td>
+                  <td class="sub">${U.esc(ev.actor || '—')}</td>
+                  <td style="font-size:12px">${U.esc(ETIQUETAS_ACCION[ev.accion] || ev.accion)}</td>
+                  <td><b>${U.esc(ev.nombre || ev.uid || '—')}</b></td>
+                  <td style="font-size:13px">${U.esc(partidoTxt)}${marcador ? `<br><span class="sub">${marcador}</span>` : ''}</td>
+                  <td style="font-size:12px">${U.esc(ev.detalle || '')}${ev.fuente === 'registro' ? '' : ''}</td>
+                </tr>`;
+              }).join('')}</tbody>
+            </table>
+          </div>`;
+
+      } else if (subPron === 'aprobaciones') {
+        document.getElementById('filtros-pron-historial').style.display = 'none';
+        desc.textContent = 'Pronósticos que esperan tu aprobación para sumar puntos.';
+        const pendientes = await (Store.prediccionesPendientes?.() || []);
+        const usuariosP = window._usuariosCache || await Store.usuarios();
+        const nombresP = {};
+        usuariosP.forEach(u => { nombresP[u.uid] = u.nombre; });
+        if (!pendientes.length) {
+          lista.innerHTML = '<div class="aviso aviso--dorado">✅ No hay pendientes.</div>';
+          return;
+        }
+        lista.innerHTML = `<div class="tabla-envoltura"><table class="tabla"><thead><tr><th>Participante</th><th>Partido</th><th>Marcador</th><th>Fecha</th><th></th></tr></thead><tbody>${pendientes.map(pr => {
+          const pe = Puntos.conAjustes(FIXTURE.porId(pr.pid) || {}, ajustes);
+          const L = pe.local ? FIXTURE.equipo(pe.local) : null;
+          const V = pe.visitante ? FIXTURE.equipo(pe.visitante) : null;
+          const partido = (L && V) ? `${L.n} vs ${V.n}` : pr.pid;
+          return `<tr style="background:rgba(224,53,75,.12)"><td><b>${U.esc(nombresP[pr.uid] || pr.uid)}</b></td><td>${U.esc(partido)}</td><td class="num" style="font-weight:900">${pr.gl} – ${pr.gv}</td><td class="sub">${new Date(pr.t).toLocaleString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</td><td style="white-space:nowrap">${botonOkPerdonar({ uid: pr.uid, pid: pr.pid, nombre: nombresP[pr.uid] || pr.uid, gl: pr.gl, gv: pr.gv, t: pr.t, minTarde: 0 })} <button class="boton boton--rojo boton--mini" type="button" data-rechazar="${U.esc(pr.uid)}|${U.esc(pr.pid)}" title="Rechazar">✕</button> <button class="boton boton--fantasma boton--mini" type="button" data-edit-aprob="${U.esc(pr.uid)}|${U.esc(pr.pid)}|${U.esc(nombresP[pr.uid]||'')} |${pr.gl}|${pr.gv}">✏️</button></td></tr>`;
+        }).join('')}</tbody></table></div>`;
+        lista.onclick = async e => {
+          const btnPerdon = e.target.closest('[data-perdonar-uid]');
+          if (btnPerdon) {
+            await perdonarPrediccionAdmin({
+              uid: btnPerdon.dataset.perdonarUid,
+              pid: btnPerdon.dataset.perdonarPid,
+              nombre: btnPerdon.dataset.perdonarNombre,
+              gl: parseInt(btnPerdon.dataset.perdonarGl, 10),
+              gv: parseInt(btnPerdon.dataset.perdonarGv, 10),
+              t: parseInt(btnPerdon.dataset.perdonarT, 10),
+              minTarde: 0
+            });
+            return;
+          }
+          const btnR = e.target.closest('[data-rechazar]');
+          const btnE = e.target.closest('[data-edit-aprob]');
+          if (btnR) {
+            const [uid, pid] = btnR.dataset.rechazar.split('|');
+            const pr = pendientes.find(x => x.uid === uid && x.pid === pid);
+            await rechazarTardeAdmin({
+              uid, pid,
+              nombre: nombresP[uid] || uid,
+              gl: pr?.gl ?? 0,
+              gv: pr?.gv ?? 0,
+              t: pr?.t
+            });
+          } else if (btnE) {
+            const parts = btnE.dataset.editAprob.split('|');
+            await editarPrediccionAdmin(parts[0], parts[1], parts[2], parts[3], parts[4]);
+            pintarPron();
+          }
+        };
+
+      } else if (subPron === 'trampas') {
+        document.getElementById('filtros-pron-historial').style.display = 'none';
+        desc.textContent = 'Intentos bloqueados después del pitazo. Puedes eliminar registros o etiquetar al participante.';
+        const trampas = typeof Store.intentosTrampa === 'function'
+          ? await Store.intentosTrampa() : [];
+        if (!trampas.length) {
+          lista.innerHTML = '<div class="aviso aviso--dorado">✅ Sin intentos sospechosos registrados.</div>';
+          return;
+        }
+        lista.innerHTML = `
+          <div class="tabla-envoltura">
+            <table class="tabla">
+              <thead><tr><th>Fecha del intento</th><th>Participante</th><th>Partido</th><th>Marcador intentado</th><th>Minutos tarde</th><th>Acciones</th></tr></thead>
+              <tbody>${trampas.map(it => {
+                const p = FIXTURE.partidos.find(x => x.id === it.pid);
+                const L = p && p.local ? FIXTURE.equipo(p.local) : null;
+                const V = p && p.visitante ? FIXTURE.equipo(p.visitante) : null;
+                const partido = (L && V) ? `${L.b} ${U.esc(L.n)} vs ${U.esc(V.n)} ${V.b}` : U.esc(it.pid);
+                const pe = Puntos.conAjustes(p || {}, ajustes);
+                const cierre = U.cierreMsEfectivo(pe);
+                const minutosTarde = cierre ? Math.max(0, Math.round((it.t - cierre) / 60000)) : '?';
+                return `<tr>
+                  <td class="sub" style="white-space:nowrap">${new Date(it.t).toLocaleString('es-CO')}</td>
+                  <td><b style="color:var(--rojo)">${U.esc(it.nombre || it.uid || '—')}</b></td>
+                  <td style="font-size:13px">${partido}</td>
+                  <td class="num" style="color:var(--rojo);font-weight:900">${it.gl} – ${it.gv}</td>
+                  <td class="num">${minutosTarde} min</td>
+                  <td style="white-space:nowrap">
+                    <button class="boton boton--fantasma boton--mini" type="button" data-marca-trampa-uid="${U.esc(it.uid)}" data-marca-trampa-nombre="${U.esc(it.nombre || it.uid || '')}" title="Etiqueta pública">🏷</button>
+                    <button class="boton boton--rojo boton--mini" type="button" data-borrar-trampa="${U.esc(it.id || '')}" title="Eliminar registro">🗑</button>
+                  </td>
+                </tr>`;
+              }).join('')}</tbody>
+            </table>
+          </div>`;
+        lista.onclick = async e => {
+          const btnMarca = e.target.closest('[data-marca-trampa-uid]');
+          if (btnMarca) {
+            if (await marcarParticipante(btnMarca.dataset.marcaTrampaUid, btnMarca.dataset.marcaTrampaNombre, '⚠️ Marcador fuera de hora')) {
+              pintarGente();
+              pintarPron();
+            }
+            return;
+          }
+          const btnDel = e.target.closest('[data-borrar-trampa]');
+          if (!btnDel) return;
+          const id = btnDel.dataset.borrarTrampa;
+          if (!id) { U.toast('Este registro antiguo no tiene ID; recarga la página.', 'error'); return; }
+          if (!confirm('¿Eliminar este registro de intento bloqueado?')) return;
+          try {
+            await Store.eliminarIntentoTrampa(id);
+            U.toast('Registro eliminado.');
+            pintarPron();
+          } catch (err) { U.toast(err.message, 'error'); }
+        };
+      }
+    } catch (err) {
+      lista.innerHTML = `<div class="aviso" style="color:var(--rojo)">⚠️ Error: ${U.esc(err.message)}</div>`;
+      console.error('pintarPron:', err);
+    }
+  }
+
+  /* ============ VERIFICACIÓN DE PUNTOS ============ */
+  let verifFiltro = '';
+
+  function etiquetaColaVerif(tipo) {
+    if (tipo === 'tarde_bloqueado') return '<span class="etiqueta" style="background:rgba(224,53,75,.3);color:#ffb4bc">⏰ Fuera de hora</span>';
+    if (tipo === 'pendiente') return '<span class="etiqueta" style="background:rgba(255,152,0,.25);color:#ffcc80">⏳ Pendiente</span>';
+    if (tipo === 'tarde_perdonado') return '<span class="etiqueta" style="background:rgba(255,193,7,.25);color:#ffd966">⚠ Perdonado · sumando</span>';
+    return '';
+  }
+
+  function botonesColaVerif(it) {
+    const quitar = `data-verif-quitar data-verif-uid="${U.esc(it.uid)}" data-verif-pid="${U.esc(it.pid)}" data-verif-nombre="${U.esc(it.nombre)}" data-verif-gl="${it.predGl}" data-verif-gv="${it.predGv}" data-verif-pts="${it.ptsActuales || 0}"`;
+    if (it.tipoCola === 'tarde_perdonado') {
+      return `<button class="boton boton--rojo boton--mini" type="button" ${quitar} title="Quitar puntos de la tabla">✕ Quitar ${it.ptsActuales} pts</button>`;
+    }
+    return `${botonOkPerdonar({ uid: it.uid, pid: it.pid, nombre: it.nombre, gl: it.predGl, gv: it.predGv, t: it.t, minTarde: it.segTarde || 0 })}
+      <button class="boton boton--rojo boton--mini" type="button" ${quitar} title="No suma puntos">✕ No cuenta</button>`;
+  }
+
+  function filaColaVerifHtml(it, { compacto = false } = {}) {
+    const pe = Puntos.conAjustes(FIXTURE.porId(it.pid) || {}, ajustes);
+    const pr = { gl: it.predGl, gv: it.predGv, t: it.t };
+    const perdonado = it.tipoCola === 'tarde_perdonado';
+    const diag = Puntos.diagnosticoTarde(pe, pr, resultados, ajustes, { perdonado, forzar: !compacto });
+    const bg = perdonado ? 'rgba(255,193,7,.06)' : 'rgba(224,53,75,.08)';
+    let diagHtml;
+    if (compacto) {
+      diagHtml = `${etiquetaColaVerif(it.tipoCola)}${it.detalleTarde ? `<br><span class="sub">${U.esc(it.detalleTarde)}</span>` : ''}`;
+    } else if (diag) {
+      diagHtml = `<div style="font-size:11px;line-height:1.45;max-width:300px">
+          ${etiquetaColaVerif(it.tipoCola)}<br>
+          <span class="sub">${U.esc(diag.linea1)}</span><br>
+          <span style="color:var(--rojo)">${U.esc(diag.linea2)}</span>
+        </div>`;
+    } else {
+      diagHtml = U.esc(it.detalleTarde || '—');
+    }
+    const ptsHtml = diag
+      ? `<span style="font-size:12px;font-weight:700">${U.esc(diag.ptsLabel)}</span><br><span class="sub" style="font-size:10px">${U.esc(diag.ptsAccion || '')}</span>`
+      : U.esc(it.regla || '—');
+    return `<tr style="background:${bg}">
+      <td style="font-size:12px"><b>${U.esc(it.nombre)}</b></td>
+      <td style="font-size:11px">${U.esc(it.partido)}</td>
+      <td class="num">${it.predGl}–${it.predGv}</td>
+      <td>${diagHtml}</td>
+      <td class="num">${ptsHtml}</td>
+      <td style="white-space:nowrap">${botonesColaVerif(it)}</td>
+    </tr>`;
+  }
+
+  function tablaColaVerifHtml(items, { compacto = false } = {}) {
+    if (!items.length) return '';
+    return `<table class="tabla tabla--compacta">
+      <thead><tr>
+        <th>Participante</th><th>Partido</th><th>Pred</th><th>Diagnóstico</th><th>Pts</th><th>Decisión</th>
+      </tr></thead>
+      <tbody>${items.map(it => filaColaVerifHtml(it, { compacto })).join('')}</tbody>
+    </table>`;
+  }
+
+  async function rechazarPrediccionVerif(btn) {
+    await rechazarTardeAdmin({
+      uid: btn.dataset.verifUid,
+      pid: btn.dataset.verifPid,
+      nombre: btn.dataset.verifNombre,
+      gl: Number(btn.dataset.verifGl),
+      gv: Number(btn.dataset.verifGv),
+      predActual: { gl: Number(btn.dataset.verifGl), gv: Number(btn.dataset.verifGv) }
+    });
+    await pintarColaRevision();
+    if (document.getElementById('verif-usuario').value === btn.dataset.verifUid) pintarVerificacion();
+  }
+
+  async function pintarColaRevision() {
+    const caja = document.getElementById('verif-cola');
+    const badge = document.getElementById('verif-cola-badge');
+    if (!caja) return;
+    caja.innerHTML = '<div class="aviso">Escaneando pronósticos fuera de hora…</div>';
+    const [usuarios, todas] = await Promise.all([Store.usuarios(), Store.todasPredicciones()]);
+    const cola = Puntos.colaRevisionPendiente(usuarios, todas, resultados, ajustes);
+    const pendientes = cola.filter(it => it.tipoCola !== 'tarde_perdonado');
+    const anteriores = cola.filter(it => it.tipoCola === 'tarde_perdonado');
+    badge.textContent = pendientes.length;
+    badge.style.background = pendientes.length ? 'rgba(224,53,75,.35)' : 'rgba(46,204,113,.2)';
+    badge.style.color = pendientes.length ? '#ffb4bc' : '#7dffb0';
+
+    const btnVerifTodos = document.getElementById('b-verif-ok-todos');
+    if (btnVerifTodos) {
+      btnVerifTodos.classList.toggle('oculto', !pendientes.length);
+      if (pendientes.length) {
+        btnVerifTodos.textContent = `✓ Aceptar todos (${pendientes.length})`;
+        btnVerifTodos.onclick = async () => {
+          await perdonarVariosTardeAdmin(pendientes.map(it => ({
+            uid: it.uid,
+            pid: it.pid,
+            nombre: it.nombre,
+            gl: it.predGl,
+            gv: it.predGv,
+            t: it.t,
+            predActual: { gl: it.predGl, gv: it.predGv, t: it.t },
+            tarde: true,
+            perdonado: false
+          })), {
+            partido: `${pendientes.length} caso(s) en cola de verificación`,
+            incluirPendientes: true,
+            resumenExtra: 'Cola de auditoría — pronósticos fuera de hora o pendientes.'
+          });
+        };
+      }
+    }
+
+    if (!pendientes.length && !anteriores.length) {
+      caja.innerHTML = '<div class="aviso" style="color:var(--verde-claro)">✔ No hay casos pendientes. Todos los pronósticos revisados o a tiempo.</div>';
+      return;
+    }
+
+    const bloquePendientes = pendientes.length
+      ? `${tablaColaVerifHtml(pendientes)}
+        <p class="sub" style="margin-top:8px;font-size:11px">✓ Permitir = suma si acertó · ✕ No cuenta / Quitar = descuenta de la tabla.</p>`
+      : '<div class="aviso" style="color:var(--verde-claro);margin-bottom:12px">✔ No hay casos pendientes de decisión.</div>';
+
+    const bloqueAnteriores = anteriores.length
+      ? `<details class="fin-colapsable" style="margin-top:14px">
+          <summary class="fin-colapsable__sum">📁 Anteriores resueltos (${anteriores.length}) — ya aprobados, sumando pts</summary>
+          <div class="fin-colapsable__lista">${tablaColaVerifHtml(anteriores, { compacto: true })}</div>
+        </details>`
+      : '';
+
+    caja.innerHTML = bloquePendientes + bloqueAnteriores;
+
+    caja.onclick = async e => {
+      const btnQuitar = e.target.closest('[data-verif-quitar]');
+      if (btnQuitar) { await rechazarPrediccionVerif(btnQuitar); return; }
+      const btnPerm = e.target.closest('[data-perdonar-uid]');
+      if (btnPerm) {
+        await perdonarPrediccionAdmin({
+          uid: btnPerm.dataset.perdonarUid,
+          pid: btnPerm.dataset.perdonarPid,
+          nombre: btnPerm.dataset.perdonarNombre,
+          gl: parseInt(btnPerm.dataset.perdonarGl, 10),
+          gv: parseInt(btnPerm.dataset.perdonarGv, 10),
+          t: parseInt(btnPerm.dataset.perdonarT, 10),
+          minTarde: parseInt(btnPerm.dataset.perdonarMin, 10) || 0
+        });
+        await pintarColaRevision();
+        if (document.getElementById('verif-usuario').value === btnPerm.dataset.perdonarUid) pintarVerificacion();
+      }
+    };
+  }
+
+  function badgeAuditoria(a) {
+    const colores = {
+      ok: 'background:rgba(46,204,113,.2);color:#7dffb0',
+      ok_revisar: 'background:rgba(255,193,7,.2);color:#ffd966',
+      perdonado: 'background:rgba(255,193,7,.25);color:#ffd966',
+      manual: 'background:rgba(8,70,240,.25);color:#9db8ff',
+      tarde: 'background:rgba(224,53,75,.25);color:#ffb4bc',
+      pendiente: 'background:rgba(255,152,0,.25);color:#ffcc80',
+      rechazado: 'background:rgba(224,53,75,.3);color:#ffb4bc',
+      fallo: 'background:rgba(255,255,255,.06);color:var(--tinta-2)',
+      espera: 'background:rgba(255,255,255,.04);color:var(--tinta-3)',
+      sin_pred: 'background:rgba(255,255,255,.04);color:var(--tinta-3)',
+      neutral: 'background:transparent;color:var(--tinta-3)'
+    };
+    const c = colores[a.estado] || colores.neutral;
+    return `<span class="etiqueta" style="${c};font-size:11px;white-space:normal;display:inline-block;max-width:160px">${U.esc(a.etiqueta)}</span>`;
+  }
+
+  function filtrarFilasVerif(filas, filtro) {
+    return Puntos.filtrarFilasAuditoria(filas, filtro);
+  }
+
+  function htmlFilaAuditoria(f, uid, usuario, conEditar = true) {
+    const icono = f.tipo === 'exacto' ? '🎯' : f.tipo === 'resultado' ? '✔' : f.finalizado ? '❌' : '—';
+    const tarde = f.auditoria.estado === 'tarde' || f.auditoria.estado === 'pendiente' || f.auditoria.estado === 'rechazado';
+    const reglaTxt = f.ptsAuto ? f.regla : (f.ptsManual ? `+${f.ptsManual} manual` : (f.auditoria.ptsDebidos ? `debía +${f.auditoria.ptsDebidos}` : '—'));
+    const alertas = [
+      f.detalleTarde ? U.esc(f.detalleTarde) : '',
+      ...(f.auditoria.sospechas || []).map(s => U.esc(s)),
+      f.motivo && !f.ptsAuto ? U.esc(f.motivo) : ''
+    ].filter(Boolean).join('<br>') || '—';
+    const editBtn = conEditar
+      ? `<button class="boton boton--fantasma boton--mini" type="button" data-verif-edit="${uid}|${f.pid}|${U.esc(usuario?.nombre || '')}|${(f.pred || '0-0').replace('–', '-')}">✏️</button>`
+      : '';
+    return `<tr${filaTardeClass(tarde || f.auditoria.revisar)}>
+      <td style="font-size:12px">${U.esc(f.etapa)}<br><b>${U.esc(f.partido)}</b></td>
+      <td class="sub" style="white-space:nowrap;font-size:11px">${U.esc(f.horaPartido || '—')}</td>
+      <td class="num">${f.pred || '<span class="sub">—</span>'}</td>
+      <td class="sub" style="white-space:nowrap;font-size:11px">${U.esc(f.horaPred || '—')}</td>
+      <td class="num">${f.real || '—'}</td>
+      <td class="num"><b>${f.pts != null ? f.pts + ' ' + icono : '—'}</b>${f.ptsManual ? `<br><span class="sub">(+${f.ptsManual} manual)</span>` : ''}</td>
+      <td class="sub">${reglaTxt}</td>
+      <td>${badgeAuditoria(f.auditoria)}</td>
+      <td class="sub" style="font-size:11px;color:var(--rojo);max-width:180px">${alertas}</td>
+      <td>${editBtn}</td>
+    </tr>`;
+  }
+
+  function pintarStatsVerif(d, filtroActivo) {
+    const caja = document.getElementById('verif-stats');
+    if (!caja) return;
+    const ra = d.resumenAuditoria;
+    const tarjetas = [
+      { f: 'puntos', label: 'Sumaron', val: ra.sumaron, sub: `${ra.ptsSumaron} pts` },
+      { f: 'exacto', label: 'Exactos', val: ra.exactos, sub: `${ra.ptsExactos} pts` },
+      { f: 'resultado', label: 'Resultado', val: ra.resultados, sub: `${ra.ptsResultados} pts` },
+      { f: 'fallo', label: 'Falló', val: ra.fallos, sub: '0 pts' },
+      { f: 'sin_pred', label: 'Sin pronóstico', val: ra.sinPred, sub: 'finalizados' }
+    ];
+    caja.classList.remove('oculto');
+    caja.innerHTML = tarjetas.map(t => `
+      <button type="button" class="audit-stat${filtroActivo === t.f ? ' audit-stat--activo' : ''}" data-verif-stat="${t.f}">
+        <span class="audit-stat__val">${t.val}</span>
+        <span class="audit-stat__lbl">${t.label}</span>
+        <span class="audit-stat__sub">${t.sub}</span>
+      </button>`).join('');
+    caja.onclick = e => {
+      const btn = e.target.closest('[data-verif-stat]');
+      if (!btn) return;
+      verifFiltro = verifFiltro === btn.dataset.verifStat ? '' : btn.dataset.verifStat;
+      document.querySelectorAll('#verif-filtros .chip').forEach(c =>
+        c.classList.toggle('activo', c.dataset.verifF === verifFiltro));
+      pintarVerificacion();
+    };
+  }
+
+  function pintarSeccionesVerif(d, uid, usuario) {
+    const caja = document.getElementById('verif-secciones');
+    if (!caja) return;
+    if (verifFiltro) {
+      caja.classList.add('oculto');
+      caja.innerHTML = '';
+      return;
+    }
+    const bloques = [
+      { titulo: '✅ Sumaron puntos', filtro: 'puntos', vacio: 'Ningún partido sumó puntos aún.' },
+      { titulo: '⬜ Sin pronóstico (finalizados)', filtro: 'sin_pred', vacio: 'No hay partidos finalizados sin pronóstico.' },
+      { titulo: '❌ Falló (con pronóstico)', filtro: 'fallo', vacio: 'No hay fallos registrados.' }
+    ];
+    caja.classList.remove('oculto');
+    caja.innerHTML = bloques.map(b => {
+      const filas = Puntos.filtrarFilasAuditoria(d.filas, b.filtro).slice(0, 8);
+      const mas = Puntos.filtrarFilasAuditoria(d.filas, b.filtro).length - filas.length;
+      return `<details class="audit-bloque" open>
+        <summary>${b.titulo} <span class="sub">(${Puntos.filtrarFilasAuditoria(d.filas, b.filtro).length})</span></summary>
+        ${filas.length
+          ? `<div class="tabla-envoltura" style="margin-top:8px"><table class="tabla tabla--compacta">
+              <thead><tr><th>Partido</th><th>Pred</th><th>Real</th><th>Pts</th><th>Estado</th></tr></thead>
+              <tbody>${filas.map(f => `<tr>
+                <td style="font-size:12px"><b>${U.esc(f.partido)}</b></td>
+                <td class="num">${f.pred || '—'}</td>
+                <td class="num">${f.real || '—'}</td>
+                <td class="num"><b>${f.pts != null ? f.pts : '—'}</b></td>
+                <td>${badgeAuditoria(f.auditoria)}</td>
+              </tr>`).join('')}</tbody>
+            </table>${mas > 0 ? `<p class="sub" style="margin:6px 0 0">+ ${mas} más — usa el filtro arriba para ver todos.</p>` : ''}</div>`
+          : `<p class="sub" style="margin:8px 0 0">${b.vacio}</p>`}
+      </details>`;
+    }).join('');
+  }
+
+  async function poblarVerifUsuarios() {
+    const usuarios = (await Store.usuarios()).filter(u => u.estado === 'activo')
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    const sel = document.getElementById('verif-usuario');
+    sel.innerHTML = '<option value="">— Selecciona —</option>'
+      + usuarios.map(u => `<option value="${u.uid}">${U.esc(u.nombre)}</option>`).join('');
+  }
+
+  async function pintarVerificacion() {
+    const uid = document.getElementById('verif-usuario').value;
+    const caja = document.getElementById('verif-tabla');
+    const resumen = document.getElementById('verif-resumen');
+    if (!uid) { caja.innerHTML = ''; resumen.classList.add('oculto'); document.getElementById('verif-stats')?.classList.add('oculto'); document.getElementById('verif-secciones')?.classList.add('oculto'); return; }
+    const [usuarios, todas, puntosManuales] = await Promise.all([
+      Store.usuarios(), Store.todasPredicciones(), Store.puntosManuales()
+    ]);
+    const usuario = usuarios.find(u => u.uid === uid);
+    const d = Puntos.desgloseCompleto(uid, usuario, todas, resultados, ajustes, puntosManuales);
+    const ra = d.resumenAuditoria;
+    const filasVista = filtrarFilasVerif(d.filas, verifFiltro);
+    pintarStatsVerif(d, verifFiltro);
+    pintarSeccionesVerif(d, uid, usuario);
+    resumen.classList.remove('oculto');
+    resumen.innerHTML = `
+      <b>${U.esc(usuario?.nombre || uid)}</b> · Total tabla: <b>${d.pts} pts</b>
+      · Auto: <b>${ra.ptsAutoTotal}</b>${ra.ptsManual ? ` · Manual: <b>+${ra.ptsManual}</b>` : ''}${d.bono ? ` · Bono 🏆: <b>+${d.bono}</b>` : ''}
+      · ✅ ${ra.sumaron} sumaron · 🎯 ${ra.exactos} exactos · ✔ ${ra.resultados} resultado
+      · ❌ ${ra.fallos} falló · ⬜ ${ra.sinPred} sin pronóstico
+      · 🔍 ${ra.revisar || 0} a revisar · ⏰ ${ra.tarde || 0} tarde
+      ${usuario?.intentosTrampa ? ` · <span style="color:var(--rojo)">${usuario.intentosTrampa} intento(s) trampa</span>` : ''}
+      ${usuario?.marcaTrampa ? ` · <span style="color:var(--rojo)">Marca: ${U.esc(usuario.marcaTrampa)}</span>` : ''}`;
+    if (!filasVista.length) {
+      caja.innerHTML = '<p class="sub centro">Nada en este filtro. Prueba otro chip o tarjeta arriba.</p>';
+    } else {
+      caja.innerHTML = `
+      <table class="tabla">
+        <thead><tr><th>Partido</th><th>Hora partido</th><th>Pronóstico</th><th>Hora pred</th><th>Real</th><th>Pts</th><th>Regla</th><th>Auditoría</th><th>Alertas</th><th></th></tr></thead>
+        <tbody>${filasVista.map(f => htmlFilaAuditoria(f, uid, usuario)).join('')}</tbody>
+      </table>`;
+    }
+    caja.onclick = async e => {
+      const btn = e.target.closest('[data-verif-edit]');
+      if (!btn) return;
+      const [u, pid, nombre, predStr] = btn.dataset.verifEdit.split('|');
+      const [gl, gv] = predStr.split('-');
+      await editarPrediccionAdmin(u, pid, nombre, gl, gv);
+      pintarVerificacion();
+    };
+    window._ultimoVerif = { ...d, nombre: usuario?.nombre };
+    await pintarPredsPerdidas(uid, usuario, preds, d);
+  }
+
+  async function pintarPredsPerdidas(uid, usuario, preds, d) {
+    const caja = document.getElementById('verif-perdidas');
+    if (!caja || !uid) { caja?.classList.add('oculto'); return; }
+    try {
+      let historial = [];
+      if (typeof Store.historialPrediccionesUsuario === 'function') {
+        historial = await Store.historialPrediccionesUsuario(uid, 800);
+      } else if (typeof Store.historialPredicciones === 'function') {
+        historial = await Store.historialPredicciones(800);
+      }
+      const perdidas = Puntos.detectarPredsPerdidas(uid, preds, historial, ajustes, resultados);
+      const sinPred = d.filas.filter(f => f.auditoria.estado === 'sin_pred');
+      if (!perdidas.length && !sinPred.length) {
+        caja.classList.add('oculto');
+        caja.innerHTML = '';
+        return;
+      }
+      caja.classList.remove('oculto');
+      const filasSinPred = sinPred.slice(0, 6).map(f =>
+        `<li><b>${U.esc(f.partido)}</b> · real ${f.real || '—'}</li>`).join('');
+      const filasHist = perdidas.slice(0, 8).map(p =>
+        `<li><b>${U.esc(p.partido)}</b> · historial: ${U.esc(p.pred)} (slot ${U.esc(p.pid)})</li>`).join('');
+      caja.innerHTML = `
+        <p style="margin:0 0 8px;color:var(--rojo)"><b>⚠ Pronósticos que parecen borrados o desvinculados</b></p>
+        ${perdidas.length
+          ? `<p class="sub" style="margin:0 0 6px">${perdidas.length} partido(s) tienen guardado en <b>historial</b> pero no aparecen vinculados ahora. Pulsa <b>♻️ Recuperar</b>.</p>
+             <ul style="margin:0 0 10px 18px;padding:0;font-size:13px">${filasHist}${perdidas.length > 8 ? '<li>…</li>' : ''}</ul>`
+          : ''}
+        ${sinPred.length
+          ? `<p class="sub" style="margin:0 0 6px">${sinPred.length} partido(s) finalizado(s) muestran <b>sin pronóstico</b>${perdidas.length ? ' (revisa si coinciden con el historial arriba)' : ''}.</p>
+             <ul style="margin:0 0 0 18px;padding:0;font-size:13px">${filasSinPred}${sinPred.length > 6 ? '<li>…</li>' : ''}</ul>`
+          : ''}`;
+    } catch (err) {
+      caja.classList.add('oculto');
+      console.warn('pintarPredsPerdidas:', err);
+    }
+  }
+
+  document.getElementById('b-recuperar-historial').onclick = async () => {
+    const uid = document.getElementById('verif-usuario').value;
+    if (!uid) { U.toast('Selecciona un participante.', 'error'); return; }
+    if (!confirm('¿Restaurar pronósticos perdidos de este participante desde el historial?\n\nSolo repone los que ya no están vinculados.')) return;
+    try {
+      const rep = await Store.recuperarPrediccionesDesdeHistorial(uid);
+      U.toast(`Recuperados: ${rep.restaurados || 0} pronóstico(s)`);
+      await pintarVerificacion();
+    } catch (err) {
+      U.toast(err.message || 'Error al recuperar', 'error');
+    }
+  };
+
+  document.getElementById('b-recuperar-historial-todos').onclick = async () => {
+    if (!confirm('¿Restaurar pronósticos perdidos de TODOS los participantes desde el historial?\n\nLuego conviene recalcular la tabla.')) return;
+    try {
+      U.toast('Recuperando pronósticos…');
+      const rep = await Store.recuperarPrediccionesDesdeHistorial();
+      U.toast(`Recuperados: ${rep.restaurados || 0} pronóstico(s) en total`);
+      if (document.getElementById('verif-usuario').value) await pintarVerificacion();
+    } catch (err) {
+      U.toast(err.message || 'Error al recuperar', 'error');
+    }
+  };
+
+  document.getElementById('b-limpiar-superseded').onclick = async () => {
+    if (!confirm('¿Eliminar pronósticos archivados (supersededBy) de Firestore?\n\nMejora el rendimiento. Los activos no se tocan.')) return;
+    try {
+      U.toast('Limpiando archivadas…');
+      const rep = await Store.limpiarPrediccionesSuperseded();
+      U.toast(`Eliminadas: ${rep.eliminados || 0} copia(s) archivada(s)`, 'ok');
+    } catch (err) {
+      U.toast(err.message || 'Error al limpiar', 'error');
+    }
+  };
+
+  document.getElementById('b-verif-cargar').onclick = () => pintarVerificacion();
+  document.getElementById('verif-usuario').addEventListener('change', () => {
+    if (document.getElementById('verif-usuario').value) pintarVerificacion();
+  });
+  document.getElementById('b-verif-refrescar').onclick = () => pintarColaRevision();
+  document.getElementById('verif-filtros').addEventListener('click', e => {
+    const b = e.target.closest('[data-verif-f]');
+    if (!b) return;
+    verifFiltro = b.dataset.verifF;
+    document.querySelectorAll('#verif-filtros .chip').forEach(c => c.classList.toggle('activo', c === b));
+    if (document.getElementById('verif-usuario').value) pintarVerificacion();
+  });
+  document.getElementById('b-verif-export').onclick = () => {
+    const d = window._ultimoVerif;
+    if (!d) { U.toast('Selecciona un participante primero.', 'error'); return; }
+    const txt = Puntos.textoInformeAuditoria(d, d.nombre);
+    navigator.clipboard?.writeText(txt);
+    U.toast('Informe de auditoría copiado al portapapeles.');
+  };
+
+  /* ============ TEMA ESPECIAL (TEST) ============ */
+  document.getElementById('b-tema-on').onclick = () => {
+    TemaColombia.activar({ forzar: true });
+    U.toast('Tema Colombia activado en todas las páginas (esta sesión y navegador).');
+  };
+  document.getElementById('b-tema-off').onclick = () => {
+    TemaColombia.desactivar({ forzar: true });
+    U.toast('Tema Colombia desactivado en todas las páginas.');
+  };
+
+  await cargar();
+  await pintarHistorialTabla();
+  if (typeof Store.limpiarPrediccionesSuperseded === 'function' && !window._limpSuperseded) {
+    window._limpSuperseded = true;
+    Store.limpiarPrediccionesSuperseded()
+      .then(r => { if (r?.eliminados > 0) console.info('Preds archivadas eliminadas:', r.eliminados); })
+      .catch(() => {});
+  }
+  if (hayPartidosParaSyncAuto()) iniciarMarcadorAutomatico(true);
+  Store.enCambios(() => {
+    clearTimeout(debounceCargar);
+    debounceCargar = setTimeout(cargar, 600);
+  });
+})();
+</script>
+</body>
